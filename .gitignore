@@ -1,25 +1,31 @@
-# Окружение и секреты
+# Environment and secrets
 .env
 .env.*
 !.env.example
 
-# Зависимости
+# Dependencies
 node_modules/
 __pycache__/
 *.py[cod]
 .venv/
 venv/
 
-# Сборка
+# Build
 dist/
 build/
 .cache/
 
-# Редакторы и ОС
+# Editors and OS
 .idea/
 .vscode/
 *.swp
 .DS_Store
 
-# Логи
+# Logs
 *.log
+
+# Collection exports and other user data samples.
+# These contain real personal data (see 1.5 / 10.2) and must never be committed.
+# Keep only anonymised fixtures, under an explicit path.
+*.csv
+!test/fixtures/**/*.csv

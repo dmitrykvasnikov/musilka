@@ -18,4 +18,55 @@
 
 ## Working notes
 
-_(none yet)_
+**2026-08-14 — verified against a real Discogs export.** A genuine export was inspected (18 rows,
+CD-heavy) and then deleted; only structural facts are recorded here, no collection contents. The file
+was an **inventory** (marketplace listings) export, *not* a collection export — so this settles the
+shape of Discogs' CSV conventions but leaves the collection-specific columns still unverified.
+
+Header seen:
+
+```
+listing_id, artist, title, label, catno, format, release_id, status, price, listed,
+comments, media_condition, sleeve_condition, accept_offer, external_id, weight,
+format_quantity, location, quantity
+```
+
+Findings that change the design:
+
+1. **`recommendations.md` point 8 is wrong, and in our favour.** The export is *not* "essentially a
+   list of `release_id`s without release metadata". Every row carried `artist`, `title`, `label`,
+   `catno`, `format` and `release_id`. A stub built from a row is a recognisable release, not an
+   empty shell. This materially improves option (a) in [10.2.3](10b-import.md) and is what makes
+   [1.5](01-product.md)'s "no external metadata" stance survivable at all.
+2. **What is still missing** from a row: no tracklist, no artist or label identifier (names only, as
+   free text), no images, no genre/style, no country, and no release year in this export.
+3. **`label` and `catno` are comma-joined lists inside one quoted field, positionally paired.** One
+   row read `"United Guttural Records, United Guttural Records"` / `"UGR 018, UG018"` — the same
+   label twice with two different catalogue numbers. Naive splitting on `,` is wrong because label
+   names legitimately contain commas; and the pairing must be preserved, not deduplicated.
+4. **`format` is a compound Discogs descriptor string**, not a value: an optional quantity prefix, a
+   media type, then free descriptors — `CD` · `CD, Album` · `2xCD, Comp` · `CD, Album, Ltd, RE, Dig`
+   · `CD, Album, Dlx, FYE`. `format_quantity` mirrors the `2x` prefix. Feeds
+   [2.4.2](02-catalogue-model.md) and [10.2.5](10b-import.md); note `FYE` is a retailer-specific
+   descriptor, so the descriptor vocabulary is open-ended and cannot be a closed enum.
+5. **`catno` has sentinel and type-confused values**: the literal string `none` where there is no
+   catalogue number, and in one row a **barcode** used as the catalogue number. Both break
+   [10.2.4](10b-import.md)'s matching ladder if taken at face value.
+6. **Condition vocabulary confirmed as Goldmine grading with the parenthetical spelled out** —
+   `Near Mint (NM or M-)`, `Very Good Plus (VG+)`, `Very Good (VG)`, `Good Plus (G+)`. Parse the
+   abbreviation in the brackets, not the prose. Confirms [10.2.5](10b-import.md).
+7. **Empty columns are genuinely empty, not absent** — `external_id` and `location` were empty in
+   every row, `comments` in all but one. The importer must treat every column as optional.
+8. **Marketplace columns exist in this export and must be discarded on sight**: `price`, `status`,
+   `accept_offer`, `listed`, `quantity`, `weight`. Per [1.7](01-product.md) nothing order-shaped
+   enters the model, so the importer drops them rather than storing them "just in case".
+
+Still unverified, and needing a real **collection** export (not an inventory one):
+
+- [10.2.2](10b-import.md) — the collection export's own column set. Expected to differ: `Released`,
+  `Rating`, `CollectionFolder`, `Date Added`, `Collection Media Condition`,
+  `Collection Sleeve Condition`, `Collection Notes`.
+- [10.2.7](10b-import.md) — whether `Collection Item Instance ID` is present. This is the
+  idempotency key question and it is still open; note that `listing_id` in the inventory export
+  plays an analogous role, which is weak evidence that the collection export carries an instance id
+  too.
