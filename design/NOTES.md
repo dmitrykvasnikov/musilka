@@ -66,6 +66,22 @@ Each one names the item it was decided in.
   ([2.4.5](02-catalogue-model.md)). A raw name would be a second class of artist that no page links
   to and no search finds. Creating a stub is one click and [2.2.6](02-catalogue-model.md) requires
   nothing of an artist but a name.
+- **2026-08-15 — Merge never copies a field, and delete is never hard.** Merging writes `merged_into`
+  on the loser and repoints every reference; no value is moved from loser to winner, so a wrong merge
+  destroys nothing and unmerge is the reverse operation. Deletion is `deleted_at` plus a tombstone
+  that still resolves. Both are moderator-only. Decided in [4.4](04-editing.md) and
+  [4.5](04-editing.md), closing what [2.4.9](02-catalogue-model.md) left to section 4.
+  **Consequence:** salvaging a better value from the loser is an ordinary edit performed *before* the
+  merge, and every UI that offers merge must say so.
+- **2026-08-15 — Edit history is written from day one and shown to nobody.** Every mutation writes an
+  aggregate snapshot; the diff viewer, revert flow and change feed are deferred until something needs
+  them. Decided in [4.2](04-editing.md). The rule this generalises: **store what cannot be
+  reconstructed, defer what can be built later from it.** Applies to any "do we need X history"
+  question in a later section.
+- **2026-08-15 — Rights come from roles, never from history.** Three roles (`user`, `moderator`,
+  `admin`), enforced in the service layer so [10.1](10a-public-api.md) obeys the same rules, and
+  nothing anywhere is gated on a contribution count or a reputation score. Decided in
+  [4.7](04-editing.md) and [4.8](04-editing.md).
 - **2026-08-15 — Curated set, with free text beside it rather than inside it.** Every field drawn
   from a vocabulary (genres and styles, format descriptors, identifier types, credit roles, company
   roles) is seeded and closed, with a free-text companion field for what the vocabulary cannot say.
@@ -105,6 +121,18 @@ What we considered and turned down, and why — so we do not re-litigate it in t
   Turned down at [2.4.7](02-catalogue-model.md): a status column with no voting workflow behind it is
   decoration that goes stale. The quality signal is the edit history
   ([section 4](04-editing.md)), which is data rather than an assertion.
+- **2026-08-15 — Voting on edits, MusicBrainz style.** Turned down at [4.3](04-editing.md). Voting
+  presumes an electorate; ours has one member ([1.4](01-product.md)), and a vote queue nobody drains
+  is worse than no queue at all. Reopen only if there are ever enough simultaneous editors to
+  disagree.
+- **2026-08-15 — Reputation, contributor ranks and a `trusted` role.** Turned down at
+  [4.8](04-editing.md) and [4.7](04-editing.md). Ranks exist to allocate moderation privileges by
+  earned standing, which is the mechanism [4.1](04-editing.md) already declined; at our volume the
+  leaderboard has one entry. A derived "edits made" count on the profile is kept — it gates nothing.
+- **2026-08-15 — Captcha, honeypot, and a prebuilt mass-revert tool.** Turned down for the MVP at
+  [4.9](04-editing.md) as cost against an imaginary threat, behind a verified-email wall at
+  portfolio scale. Note the asymmetry that decided it: mass revert is *not built* but its data *is
+  stored*, because the tool is a day's work later and the history is unrecoverable.
 - **2026-08-15 — `Series` as an entity.** Turned down at [2.1.5](02-catalogue-model.md) — real on
   real objects, but a mostly-empty table with a moderation cost at ~12,000 releases, and expressible
   as a format descriptor or a note. Additive if ever reopened.
@@ -149,10 +177,12 @@ Questions that must be answered before some other item can be closed. Format: wh
   the fallback (Elixir/Phoenix); the binding choice waits until the remaining model sections are
   known. Section 2's answer on size is in: four entities, no global track table, vocabularies as
   seeded lookups, and an ordered artist credit in three parallel tables.
-- Soft delete and merge semantics ← [section 4](04-editing.md). [2.4.9](02-catalogue-model.md)
-  requires a merged-away release to keep resolving and a collection item never to dangle, but whether
-  that is `merged_into` alone, a `deleted_at`, or a consequence of edit versioning is section 4's to
-  decide. Flagged so it is not discovered during implementation.
+- ~~Soft delete and merge semantics ← [section 4](04-editing.md)~~ — **closed 2026-08-15.** It is
+  `merged_into` *and* `deleted_at`, as two distinct operations with different meanings, and neither
+  is a consequence of edit versioning ([4.4](04-editing.md), [4.5](04-editing.md)). Now an invariant
+  above. **What it hands on:** [3.11](03-collection.md) inherits three cases to answer — edited
+  (nothing happens), merged (the item follows the pointer), deleted (the item survives and is shown
+  as deleted).
 - Seeding the vocabularies ← [section 15](15-roadmap.md). Genres, styles, credit roles, format
   descriptors and country codes (ISO plus historical `SU`, `YU`, `DD`, `CS`) all need initial
   contents, and [1.5](01-product.md) forbids fetching them, so they are hand-written seed data — our
