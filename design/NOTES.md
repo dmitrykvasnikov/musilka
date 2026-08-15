@@ -147,6 +147,27 @@ Each one names the item it was decided in.
   render, newlines preserved, URLs linkified with `rel="noopener nofollow ugc"`. Any later
   free-text-for-humans field takes the same rule rather than inventing a second one — two policies
   means two sanitising stories and two places to get XSS wrong ([14.3](14-security.md)).
+- **2026-08-15 — Postgres is the only datastore, and the binary is the only runtime.** Search, the
+  job queue, sessions and rate limits are all tables ([11.4](11-stack.md)); images in object storage
+  ([section 8](08-media.md)) are the sole exception, and there is no second daemon, broker, cache or
+  identity service anywhere. [1.4](01-product.md) vetoed these by name; [11.4](11-stack.md),
+  [11.6](11-stack.md) and [11.7](11-stack.md) record what Postgres does instead, so a later section
+  needing one of those functions has its answer already.
+- **2026-08-15 — No JavaScript build step, ever, and no framework doing anything silently.** The
+  repository has no `package.json`, no bundler and no CSS pipeline: hand-written CSS and one vendored
+  HTMX file, served as committed ([11.3](11-stack.md), [11.11](11-stack.md)). Two consequences that
+  reach other sections — [section 8](08-media.md) has no JS available for image handling, and CSRF
+  tokens are a template concern that [14.3](14-security.md) must specify explicitly, because plain
+  HTML forms mean nothing adds them for you. Every core flow works with JavaScript disabled; HTMX
+  enhances a working page and is never the mechanism.
+- **2026-08-15 — The reuse boundary is the service layer, not HTTP.** Pages render from services
+  directly with no JSON hop ([11.5](11-stack.md)), so any future API
+  ([10.1](10a-public-api.md)) is a second adapter over the same services rather than a layer the UI
+  depends on. This is what makes the rights model ([4.7](04-editing.md)), the verified-email barrier
+  ([6.1](06-accounts.md)) and collection privacy ([3.7](03-collection.md)) hold identically in both,
+  as each of those items requires — and the build enforces the direction, since `musilka-domain`
+  cannot import `musilka-app` and `musilka-app` cannot import `musilka-web`
+  ([11.11](11-stack.md)).
 
 ## Rejected approaches
 
@@ -250,6 +271,41 @@ What we considered and turned down, and why — so we do not re-litigate it in t
   It needs a scheduled purge job and a fourth account state to explain, on top of the three
   ([6.5](06-accounts.md)) already has. Deletion is immediate and irreversible, with an export offered
   on the same page ([10.3](10c-export.md)) so that leaving does not mean losing.
+- **2026-08-15 — Elixir/Phoenix, and building both languages in parallel branches.** The fallback in
+  [1.12](01-product.md) was not exercised at [11.2](11-stack.md): section 5 refused real time
+  ([5.3](05-messaging.md)), so OTP, LiveView and presence have no consumer, and what remained of the
+  Elixir case was that it ships sooner — which [1.11](01-product.md) already paid for. Parallel
+  branches were raised and declined: every design decision implemented twice at
+  [1.11](01-product.md)'s pace, branches that diverge with no cross-language merge, and
+  [1.10](01-product.md) needing one deployed thing a stranger can use. A timeboxed bakeoff spike was
+  the defensible version and was also declined in favour of committing. Reopening means restarting
+  the codebase, so it happens on evidence from a built E0/E1 or not at all.
+- **2026-08-15 — An SPA, an SSR framework, Tailwind and every UI kit.** Turned down at
+  [11.1](11-stack.md) and [11.3](11-stack.md). An API + SPA split would build and version a JSON
+  layer whose only consumer is our own frontend, against [1.9](01-product.md) deferring the public
+  API; Tailwind and the kits drag a Node toolchain, a build and a second CI step into a Haskell
+  repository for styling alone, when [11.11](11-stack.md) is working to keep the deploy at one
+  artifact.
+- **2026-08-15 — JWT, and off-the-shelf auth (Auth.js, Keycloak, Supabase Auth).** Turned down at
+  [11.6](11-stack.md). JWT is excluded outright by [6.2](06-accounts.md) — reset and email change
+  must invalidate *every* session, and honouring that means a denylist, which is the session table
+  with worse failure modes. The off-the-shelf products exist chiefly to solve federation, and
+  [6.1](06-accounts.md) rejected OAuth, so there is nothing to federate.
+- **2026-08-15 — GraphQL and tRPC, and ORM-shaped database layers.** Turned down at
+  [11.5](11-stack.md) and [11.4](11-stack.md). tRPC presumes a TypeScript client that
+  [11.3](11-stack.md) does not have; GraphQL is a resolver layer and an N+1 problem bought for zero
+  third-party clients at ~12,000 releases ([1.4](01-product.md)). `rel8`/`opaleye` and
+  `persistent`/`esqueleto` were declined for a shared reason worth remembering: both introduce a
+  second schema definition beside the SQL migrations, and [1.12](01-product.md) records the database
+  layer as the area with no prior experience at all.
+- **2026-08-15 — Down-migrations.** Turned down at [11.8](11-stack.md). A down-migration for anything
+  that touched data is a fiction; mistakes are corrected forward, and the actual safety net is
+  [section 12](12-infrastructure.md)'s tested restore, which [1.4](01-product.md) already demands.
+- **2026-08-15 — A coverage percentage target.** Turned down at [11.10](11-stack.md). It is the one
+  measure of [1.1](01-product.md)'s quality bar that is gameable by testing getters, and at
+  [1.11](01-product.md)'s pace a number becomes a chore that displaces real tests. Replaced by a
+  named list of what must be covered — including [1.10](01-product.md)'s export→import round trip as
+  an automated property, rather than a thing checked once by hand.
 
 ## Constraints discovered
 
@@ -286,7 +342,12 @@ Questions that must be answered before some other item can be closed. Format: wh
   [2.2.1](02-catalogue-model.md): one artist, many name rows, one search index, no transliteration
   anywhere. Kept here only as a pointer, since [1.8](01-product.md) and several notes refer to it as
   an open question. It is now an invariant above.
-- ~~[11.2](11-stack.md) final stack confirmation ← section 5~~ — **unblocked 2026-08-15.**
+- ~~[11.2](11-stack.md) final stack confirmation ← section 5~~ — **closed 2026-08-15.** It is
+  **Haskell**, with Servant + warp + Lucid, `hasql` and hand-written SQL. **Section 11 is now fully
+  closed** and the Elixir fallback was not exercised; the reasoning below is kept because several
+  items still refer to this as pending. What section 11 hands on is listed in
+  [its working notes](11-stack.md).
+  *Original entry, unblocked earlier the same day:*
   Sections 1–5 are now all closed and **nothing is waiting on a model section any more**;
   [11.2](11-stack.md) can be decided whenever section 11 is taken up. What the model sections handed
   it: section 2 — four entities, no global track table, vocabularies as seeded lookups, an ordered
