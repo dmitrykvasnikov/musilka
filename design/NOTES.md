@@ -128,6 +128,25 @@ Each one names the item it was decided in.
   meaningless when the same party renders the pages. Decided in [5.8](05-messaging.md). The
   obligation this creates is on [section 13](13-legal.md) (the privacy policy states it) and
   [section 14](14-security.md) (at-rest and backup handling), not on the messaging module.
+- **2026-08-15 — A verified email address is the barrier, and unverified means read-only.** Every
+  anti-abuse decision in the design leans on it — [4.9](04-editing.md) declined captcha and
+  honeypots, [5.7](05-messaging.md) declined everything heavier than a rate limit — so it may not be
+  softened later without reopening both. An unverified account reads public pages and does nothing
+  else: no edit, no collection, no message. Decided in [6.1](06-accounts.md), enforced in the service
+  layer so [10.1](10a-public-api.md) inherits it.
+- **2026-08-15 — A user row is never deleted, only emptied.** Deletion anonymises in place and leaves
+  a tombstone: [5.1](05-messaging.md) requires exactly two participant rows per conversation and
+  [4.2](04-editing.md) hangs every revision off its author, so a missing row would dangle both.
+  Message bodies and catalogue edits survive attributed to the tombstone; the user's own collection,
+  wantlist and tags are hard-deleted. Decided in [6.5](06-accounts.md), closing what
+  [5.8](05-messaging.md) handed on. **This generalises the earlier rule** that nothing a collection
+  points at is hard-deleted: in this design, deletion of anything anyone else references is
+  anonymisation or a tombstone, never a `DELETE`.
+- **2026-08-15 — One text-rendering policy for all user prose.** Message bodies
+  ([5.5](05-messaging.md)) and profile bios ([6.3](06-accounts.md)) are stored verbatim, escaped at
+  render, newlines preserved, URLs linkified with `rel="noopener nofollow ugc"`. Any later
+  free-text-for-humans field takes the same rule rather than inventing a second one — two policies
+  means two sanitising stories and two places to get XSS wrong ([14.3](14-security.md)).
 
 ## Rejected approaches
 
@@ -205,6 +224,32 @@ What we considered and turned down, and why — so we do not re-litigate it in t
   subscription table aimed at users who are not in the app. Receipts are social pressure and a
   privacy choice made on the user's behalf — but `last_read_at` is stored regardless, so this is
   another case of the [4.9](04-editing.md) asymmetry: store the data, do not build the tool.
+- **2026-08-15 — OAuth login (Google/GitHub/VK), at any stage.** Turned down at
+  [6.1](06-accounts.md). Every provider is a console registration, a secret in configuration, a
+  callback route and an account-linking matrix, and it removes no work: the mail sender, the address
+  column and the verification flow are all needed regardless ([6.1](06-accounts.md)'s barrier). It
+  only adds a second way in. Additive later as a provider table beside the password column.
+- **2026-08-15 — 2FA in the MVP.** Deferred at [6.2](06-accounts.md), not refused. With nothing
+  money-shaped anywhere ([1.7](01-product.md), [3.2](03-collection.md)), the worst case of a stolen
+  account is a reversible edit ([4.4](04-editing.md)) and a read mailbox — against secret storage,
+  recovery codes and a lockout path with no support channel. If reopened it is TOTP for **everyone**,
+  never an admin-only privilege: a second factor with one user is a code path with no coverage.
+- **2026-08-15 — A key/value settings table, and every setting not already decided elsewhere.**
+  Turned down at [6.6](06-accounts.md). The complete list is three columns on `user`
+  (`collection_visibility`, `wantlist_visibility`, `notify_new_message`); a key/value table is a
+  schema you cannot query, constrain or index. Explicitly not settings: transactional mail, profile
+  visibility, per-conversation muting or digests ([5.9](05-messaging.md)), per-item collection
+  privacy ([3.7](03-collection.md)), and "who may message me" — [5.7](05-messaging.md)'s blocking
+  covers that reactively.
+- **2026-08-15 — A profile links field, and profile fields we have no use for.** Turned down at
+  [6.3](06-accounts.md). A link list is a table, a rendering, a validation and an SEO-spam target for
+  a page nobody reads; URLs go in the bio and are linkified there. No real name, birthday, gender or
+  phone either — data we do not hold is data [13.3](13-legal.md) need not account for and
+  [14.6](14-security.md) need not protect.
+- **2026-08-15 — An undo window on account deletion.** Turned down at [6.5](06-accounts.md).
+  It needs a scheduled purge job and a fourth account state to explain, on top of the three
+  ([6.5](06-accounts.md)) already has. Deletion is immediate and irreversible, with an export offered
+  on the same page ([10.3](10c-export.md)) so that leaving does not mean losing.
 
 ## Constraints discovered
 
@@ -252,10 +297,16 @@ Questions that must be answered before some other item can be closed. Format: wh
   (Elixir/Phoenix), and the argument for Elixir that the messaging module might have supplied — a
   real-time vertical — **did not materialise**, since [5.3](05-messaging.md) refused real time
   outright. The stack may be chosen on the catalogue's merits alone.
-- [6.5](06-accounts.md) account deletion ← inherits a constraint from [5.8](05-messaging.md), not a
-  blocker but a case that must be handled: a deleted account's messages have to survive in the other
-  party's mailbox, attributed to a tombstone user. One party's right to erasure cannot erase the
-  other party's record of a conversation they took part in. [13.3](13-legal.md) owns the legal half.
+- ~~[6.5](06-accounts.md) account deletion ← [5.8](05-messaging.md)'s tombstone constraint~~ —
+  **closed 2026-08-15.** The account is anonymised in place and the row is never deleted; messages,
+  conversations and catalogue edits survive attributed to the tombstone, collection and wantlist are
+  hard-deleted. **Section 6 is now fully closed.** What it hands on: [13.3](13-legal.md) inherits
+  three statements it may not overstate (what deletion erases and keeps, that message bodies are
+  plaintext and survive the sender, that the only personal data held is an address, a nickname and a
+  bio); [section 14](14-security.md) inherits password storage ([14.2](14-security.md)), the rate
+  limits on registration, login, reset and resend ([14.5](14-security.md)) and log retention
+  ([14.6](14-security.md)); [8.2](08-media.md) gains a second consumer in the avatar;
+  [section 12](12-infrastructure.md) inherits transactional-mail deliverability for four templates.
 - ~~Soft delete and merge semantics ← [section 4](04-editing.md)~~ — **closed 2026-08-15.** It is
   `merged_into` *and* `deleted_at`, as two distinct operations with different meanings, and neither
   is a consequence of edit versioning ([4.4](04-editing.md), [4.5](04-editing.md)). Now an invariant

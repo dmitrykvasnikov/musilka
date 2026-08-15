@@ -24,6 +24,10 @@ build/
 # Logs
 *.log
 
+# Personal working notes on how to run the design sessions.
+# Process, not design — decisions live in design/.
+session.md
+
 # Collection exports and other user data samples.
 # These contain real personal data (see 1.5 / 10.2) and must never be committed.
 # Keep only anonymised fixtures, under an explicit path.
