@@ -132,8 +132,65 @@
       artist may appear as `Кино` on one release and `Kino` on another, and users will search for
       both. That is a catalogue modelling problem (name variants and aliases), not an i18n one, and
       it must not be solved with translation strings. See NOTES.md.
-- [ ] 1.9 What goes into the MVP (first working release) and what is explicitly deferred. State it in one paragraph.
-- [ ] 1.10 MVP success criterion: what has to happen for us to call it a success.
+- [x] 1.9 What goes into the MVP (first working release) and what is explicitly deferred. State it in one paragraph.
+      **Decision, in the one paragraph the item asks for:** the first working release is **a
+      collector's round trip**. You sign up, upload your Discogs collection export, and get a
+      browsable catalogue of what you actually own; you correct it by hand, with every change
+      attributable and reversible; you add cover images; you search it; and you export the lot back
+      out whenever you like. Everything that is not on that path is deferred.
+      **In:** accounts and sessions ([section 6](06-accounts.md)); the catalogue entities of
+      [section 2](02-catalogue-model.md) with hand editing and history
+      ([section 4](04-editing.md)); collection and wantlist ([section 3](03-collection.md)); Discogs
+      CSV import as a background job ([10.2](10b-import.md), [10.4.5](10d-model-requirements.md));
+      export ([10.3](10c-export.md)); search over Postgres FTS with a trigram index
+      ([section 7](07-search-ux.md), [1.4](01-product.md)); release images, capped at eight, in
+      object storage ([2.4.8](02-catalogue-model.md), [section 8](08-media.md)).
+      **Explicitly out, and this list is the useful half of the item:** messaging
+      ([section 5](05-messaging.md)) — at tens of users ([1.4](01-product.md)) there is nobody to
+      message, and a mailbox is a whole vertical; the public API ([10.1](10a-public-api.md)); any
+      moderation or voting queue ([section 4](04-editing.md) ships attribution and reversal, not a
+      review workflow); artist photos ([2.2.6](02-catalogue-model.md)); the companies UI
+      ([2.4.6](02-catalogue-model.md)); track-level role credits
+      ([2.4.5](02-catalogue-model.md)); membership editing ([2.2.2](02-catalogue-model.md)). The last
+      four exist in the schema already and cost nothing to leave switched off.
+      **Three things must nonetheless be built in E0–E1 even though the features they serve are
+      later**, per recommendation 7 — retrofitting them is the most expensive rework available: the
+      service layer through which all mutations pass ([10.4.4](10d-model-requirements.md)), the
+      external-ID table with provenance ([10.4.1](10d-model-requirements.md)), and the
+      Postgres-backed job queue ([10.4.5](10d-model-requirements.md)).
+      **Two sequencing constraints, both already decided elsewhere:** export ships **before** import
+      (recommendation 9 — it needs no external format knowledge and delivers
+      [1.3](01-product.md)'s "not locked in" promise immediately), and **master merge is early, not
+      late** ([2.1.2](02-catalogue-model.md) — the importer mints a master per row, so merge is how
+      the catalogue becomes correct at all, not a moderation nicety).
+      **Where this will hurt first:** images. [1.4](01-product.md) already predicts they are the item
+      that breaks the size estimate, and including them in the MVP accepts that cost knowingly rather
+      than discovering it.
+- [x] 1.10 MVP success criterion: what has to happen for us to call it a success.
+      **Decision: two criteria, both of which must hold.**
+      **1. The round trip works on real data.** A real Discogs export of a real collection imports;
+      every release is reachable and nothing is orphaned; twenty of them get corrected by hand with
+      the history intact; the whole collection exports; and **re-importing that export lands in the
+      same state, with no duplicates**. This is deliberately pass/fail on real input rather than a
+      judgement call, and it exercises all four value propositions of [1.3](01-product.md) in one
+      pass. The re-import step is the sharp end — it is what proves external IDs
+      ([2.5.4](02-catalogue-model.md)) and duplicate handling
+      ([2.4.9](02-catalogue-model.md)) actually work.
+      **2. A second person uses it.** Someone who is not the author signs up unaided, uploads their
+      own export, finds and fixes a wrong release, and comes back. Flows survive contact with a
+      stranger, or they do not work.
+      **Honest caveat on the second:** it depends on finding a willing collector, which is outside
+      the author's control. It is the one criterion that circumstance rather than unfinished work can
+      block, and if it stalls, that is worth distinguishing from failure.
+      **Why "judged as code" is not on this list, having been considered:** it is not a criterion but
+      a **standing constraint**. [1.1](01-product.md) already sets the bar — clean architecture,
+      tests, CI, a real deploy — and it applies to every commit from the first one. Restating it here
+      would recast a continuous obligation as an event to reach at the end, which is exactly how that
+      bar gets missed.
+      **What is explicitly *not* a success criterion:** user counts, catalogue size, uptime,
+      engagement or revenue. [1.4](01-product.md) and [1.6](01-product.md) already rule out the
+      product ambitions those would measure, and importing them here would quietly reopen decisions
+      taken deliberately.
 - [x] 1.11 Timeline and resources: are you working alone? how many hours per week? is there a deadline.
       **Decision:** Solo, **2–3 hours per day** (roughly 15–20 hours a week), **no deadline**.
       This is what makes [1.12](01-product.md)'s choice of Haskell affordable: the accepted 2–3×

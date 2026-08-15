@@ -132,13 +132,14 @@ Facts found while designing that constrain later choices (external ToS, format q
 
 Questions that must be answered before some other item can be closed. Format: what is blocked ← what we are waiting on.
 
-- [1.9](01-product.md) MVP scope and [1.10](01-product.md) success criterion ←
-  **nothing in section 2 any more.** Section 2 closed 2026-08-15 (all 30 items), so the reason these
-  two were held is gone: the model's size is known, and [2.5.5](02-catalogue-model.md) has settled
-  that CSV import is in the MVP. Section 2 also handed 1.9 two exclusions to fold in — artist images
-  are out ([2.2.6](02-catalogue-model.md)) and companies are schema-only, not UI
-  ([2.4.6](02-catalogue-model.md)). **These are the two oldest open items in the agenda and are now
-  answerable.**
+- ~~[1.9](01-product.md) MVP scope and [1.10](01-product.md) success criterion~~ — **closed
+  2026-08-15**, immediately after section 2 removed what they were waiting on. **Section 1 is now
+  fully closed.** The MVP is the collector's round trip (upload, browse, correct, image, search,
+  export) with messaging, the public API and any moderation queue explicitly out; success is the
+  round trip working on a real export plus a second person using it unaided.
+  **What this now constrains:** [section 15](15-roadmap.md) inherits a scope line and two sequencing
+  rules (export before import; master merge early, not late), and every remaining P0 section should
+  be read against the deferred list rather than designed in full.
 - ~~Multi-script artist and title names (`Кино` / `Kino`)~~ — **closed 2026-08-15** at
   [2.2.1](02-catalogue-model.md): one artist, many name rows, one search index, no transliteration
   anywhere. Kept here only as a pointer, since [1.8](01-product.md) and several notes refer to it as
