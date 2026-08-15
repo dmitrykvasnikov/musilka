@@ -266,6 +266,49 @@ Each one names the item it was decided in.
   and the mail sender all sit in the EU/EEA. This is a constraint on
   [12.1](12-infrastructure.md), not a preference, and it is also what removes the international
   transfer question from the policy entirely.
+- **2026-08-15 — A public identifier is a `bigint`, and it is permanent from the first exported
+  file.** `bigint GENERATED ALWAYS AS IDENTITY`, one sequence per entity type, exposed exactly as it
+  is — no UUID, no slug in the identifier position, no opaque code. Decided in
+  [10.4.6](10d-model-requirements.md), closing what had become the oldest unblocked P0 item.
+  Unguessability was never a requirement because [14.3](14-security.md) puts authorisation in the
+  `WHERE` clause; the slug stays cosmetic ([7.5](07-search-ux.md)). **Two rules travel with it:** an
+  id never appears without its entity type (`/release/42`, `release_id`), and **old ids keep
+  resolving** — merged entities follow `merged_into`, deleted ones resolve to a tombstone — which is
+  what makes a two-year-old export re-importable.
+- **2026-08-15 — Provenance is the revision, and nothing automatic ever overwrites a human value.**
+  No field-level provenance columns anywhere: `revision.source` and `revision.import_id`
+  ([10.4.2](10d-model-requirements.md)) plus `external_id.added_by` are the whole of it, and "is this
+  an untouched import stub?" is derived (exactly one revision, `source = import`) rather than stored.
+  The general form, which any later "should we mark where this came from" question inherits: the
+  edit history is data, a provenance flag is an assertion parked beside the data —
+  [2.4.7](02-catalogue-model.md) refused the same thing under a different name.
+- **2026-08-15 — There is no public API, and nothing anywhere is reserved for one.**
+  [10.1.1](10a-public-api.md) looked for an audience and found none: third parties have no reason to
+  build on a catalogue that is thin by construction ([1.5](01-product.md)), mobile was declined at
+  [7.6](07-search-ux.md), and "dump my collection with a script" is what [10.3](10c-export.md)
+  already does. **Everything an API would need already exists for other reasons** — service layer,
+  authorisation in the query, limits below HTTP, stable ids, a monotonic revision id, a generated
+  OpenAPI document — so the reopening cost is an adapter, not an architecture. Three refusals inside
+  it are permanent rather than deferred: **no OAuth2 server**, **no catalogue writes through the
+  API**, and **no webhooks, ever** — the last because a webhook is an outbound request to a
+  user-supplied URL, which [14.3](14-security.md) forbids by name.
+- **2026-08-15 — One compatibility rule, for files and for any API.** Appending a field or an
+  endpoint is compatible; renaming, removing, reordering, retyping or tightening is not
+  ([10.3.2](10c-export.md), [10.1.3](10a-public-api.md)). Deliberately one sentence rather than two,
+  because two would mean two habits and one of them wrong.
+- **2026-08-15 — The queue is for work a user started; everything recurring is a timer.** The job
+  queue's consumers are exactly two — the importer and outbound mail
+  ([10.4.5](10d-model-requirements.md)) — after [10.3.3](10c-export.md) made export synchronous and
+  [8.3](08-media.md) made image processing a subprocess. Backups, the error digest, the rate-limit
+  sweep and [10.4.8](10d-model-requirements.md)'s file sweeper are systemd timers running a command
+  ([12.2](12-infrastructure.md)). Conflating the two is how a queue grows a scheduler.
+- **2026-08-15 — Two environments, and production data never leaves the box except encrypted.**
+  Local and production; no staging ([12.4](12-infrastructure.md)). Development runs on generated
+  fixtures ([11.8](11-stack.md)) because the database holds message bodies and email addresses in
+  plaintext ([5.8](05-messaging.md), [14.1](14-security.md)). The single bounded exception is
+  [9.3](09-nfr.md)'s restore drill, which decrypts real data on the machine holding the `age` private
+  key, drops the scratch database afterwards, and is a drill rather than an environment — it is also
+  what replaces staging when a risky migration needs rehearsing ([9.2](09-nfr.md)).
 
 ## Rejected approaches
 
@@ -499,6 +542,38 @@ What we considered and turned down, and why — so we do not re-litigate it in t
   [14.3](14-security.md). An SVG is a script container, and a link preview would be the only code
   path in the system that fetches a URL a user supplied — inventing an SSRF surface
   [1.5](01-product.md) had already deleted.
+- **2026-08-15 — UUIDs and slugs as public identifiers, and `synced_at`/`url` on the external-id
+  table.** Turned down at [10.4.6](10d-model-requirements.md) and
+  [10.4.1](10d-model-requirements.md). UUIDv7 costs 36 characters in every URL, export cell and log
+  line plus a wider index on every foreign key, to hide a row count the design publishes; nothing in
+  a one-process, one-writer system needs distributed id generation. A slug as the identifier would
+  make a retitle a broken link and destabilise an export column. `synced_at` describes a sync
+  [1.5](01-product.md) forbids, and a stored `url` is both derivable and an invitation for some
+  later code path to fetch it.
+- **2026-08-15 — Field-level provenance.** Turned down at
+  [10.4.2](10d-model-requirements.md): a parallel schema written on every edit, read only to answer
+  a question [2.4.7](02-catalogue-model.md) already refused to answer with a stored status, and
+  derivable from the revision anyway.
+- **2026-08-15 — OAuth2 as an authorisation server, catalogue writes through the API, and
+  webhooks.** Turned down at [10.1.4](10a-public-api.md), [10.1.7](10a-public-api.md) and
+  [10.1.10](10a-public-api.md). OAuth2 is a consent screen, a client registry and refresh rotation
+  built for third-party applications that do not exist; a write token turns
+  [4.9](04-editing.md)'s "an edit is a human at a form" into a loop; and a webhook is the outbound
+  fetch of a user-supplied URL that [14.3](14-security.md) forbids outright. Also declined there:
+  header-based versioning, offset pagination, a sandbox environment, generated client libraries, and
+  any attribution or non-commercial requirement on the data — [13.1](13-legal.md)'s CC0 forbids us
+  from imposing one.
+- **2026-08-15 — PaaS, Docker on the server, Nix, and a staging environment.** Turned down at
+  [12.1](12-infrastructure.md), [12.2](12-infrastructure.md) and [12.4](12-infrastructure.md). Every
+  PaaS is built around an ephemeral filesystem, a managed database as an add-on and a scaling model
+  [1.4](01-product.md) vetoes, when we need Postgres on a unix socket, a persistent disk and cron.
+  A container on the box would be a second artifact where [11.11](11-stack.md) works to keep one.
+  Nix would enlarge [1.12](01-product.md)'s largest known gap to solve a reproducibility problem a
+  pinned GHC, `index-state` and a pinned builder image already solve. Staging is a second everything
+  to rehearse against data that is not the data — [9.3](09-nfr.md)'s restore gives a real-data
+  scratch copy on demand instead. Also declined there: secret managers of every kind (four secrets
+  on one box), Caddy (for `limit_req` alone), Conventional Commits (no version, no changelog), and
+  Linear/Jira and every hosted tracker.
 
 ## Constraints discovered
 
@@ -582,14 +657,21 @@ Questions that must be answered before some other item can be closed. Format: wh
   which every anti-abuse decision in the design leans on. Register and publish the records in the
   same sitting as the first deploy setup, and give reputation time before [1.10](01-product.md)'s
   stranger is invited.
-- [10.4.6](10d-model-requirements.md) public entity identifiers ← nothing, and that is the problem.
-  It is unblocked, and [10.3.2](10c-export.md) has just made it irreversible: the first exported
-  file puts whatever we chose into someone's hands permanently. It should be settled before the
-  first export ships, not before the API does.
-  **A second caller as of 2026-08-15:** [7.5](07-search-ux.md) fixed every URL in the product as
-  `/<entity>/<id>/<slug>` and left `<id>` as the one hole in it. The slug is cosmetic and may change
-  freely; the identifier is in links, redirects after merge ([7.8](07-search-ux.md)) and the export
-  file at once. It is now the oldest unblocked P0 item in the design.
+  **Status as of 2026-08-15:** still open, and now open *by choice* — [12.1](12-infrastructure.md)
+  and [12.5](12-infrastructure.md) carry `[~]` because naming a hosting provider and a mail sender
+  was postponed. Everything vendor-independent about both is decided (a single EU/EEA VPS with
+  Postgres on a unix socket, nginx with [9.4](09-nfr.md)'s caps, certbot, two buckets at two
+  providers, forwarding-only inbound mail). **What is blocked is the first deploy, and nothing
+  analytical** — no design decision anywhere waits on the names. [15.4](15-roadmap.md) carries
+  deliverability as risk 2 and [15.3](15-roadmap.md) notes that week one ends at green CI if the
+  provider is still unchosen.
+- ~~[10.4.6](10d-model-requirements.md) public entity identifiers ← nothing, and that is the
+  problem~~ — **closed 2026-08-15.** It is `bigint GENERATED ALWAYS AS IDENTITY`, one sequence per
+  entity type, exposed as it is, and it is now an invariant above. Both callers are satisfied:
+  [10.3](10c-export.md)'s column sets have a defined type in their `release_id` position, and
+  [7.5](07-search-ux.md)'s `/<entity>/<id>/<slug>` has no hole left in it. **The irreversibility
+  stands** — from the first exported file onward, changing it means a migration plus every file
+  already in a user's hands being wrong.
 - ~~[8.3](08-media.md) serving WebP with no fallback ← [9.6](09-nfr.md) browser support~~ —
   **closed 2026-08-15.** The baseline is current evergreen browsers and WebP has been safe in all of
   them for years: no JPEG fallback, no second derivative, and [8.2](08-media.md)'s bucket estimate
@@ -600,6 +682,10 @@ Questions that must be answered before some other item can be closed. Format: wh
   contents, and [1.5](01-product.md) forbids fetching them, so they are hand-written seed data — our
   own list, not an extraction from anyone's database. Nobody has estimated the work; it is a real
   roadmap task, not a footnote.
+  **Placed 2026-08-15, still unestimated:** [15.1](15-roadmap.md) puts it in E1.2 with the catalogue
+  entities and [15.4](15-roadmap.md) carries it as risk 4, with the mitigation of starting
+  deliberately small — [section 4](04-editing.md)'s moderation path exists precisely so users can
+  request what a seeded list is missing.
 
 ## Needs verification against reality
 
@@ -618,9 +704,17 @@ Claims in the agenda that are assumptions until checked against a real file, API
   runs, not the schema.
 - [10.2.5](10b-import.md) — the literal name of Discogs' default collection folder, which the
   importer skips rather than turning into a tag every item carries. Same file, same verification.
-- [10.5.1](10e-legal-sources.md) — narrowed by [1.5](01-product.md): we never call the Discogs API,
-  so its rate limits are moot. What remains to check is whether Discogs' ToS says anything about
-  what a user may do with their **own** export.
+- [10.5.1](10e-legal-sources.md) — **checked 2026-08-15, as far as is possible without a lawyer, and
+  closed on that basis.** The collection export is an official, documented Discogs feature; the
+  licensing clauses in their ToS run *user → Discogs* (plus Discogs' onward licensing via the Data
+  Dump and API) rather than restricting what a user does with a copy of their own collection. The
+  framing that actually decides it: **their ToS is not our contract** — it binds the user, not us —
+  and for an EU user, GDPR portability is a right no terms can remove. Their ToS page refuses
+  automated fetching (HTTP 403), which is consistent with a service that does not want to be
+  crawled, and we do not crawl it. Not lawyer-reviewed; worth ten minutes before the ToS is
+  published, alongside [13.5](13-legal.md) and [13.1](13-legal.md) below.
+  **The live risk was never here:** it is the EU database-rights note above, which concerns *us*
+  accreting exports, and it becomes real only at [10.3.4](10c-export.md)'s dump.
 - [13.5](13-legal.md) — the claim that a single-operator service of this size owes no DSA
   compliance machinery (statements of reasons, transparency reports, appeals) and needs no
   registered DMCA agent. Believed right and decided on that basis; not checked against current law,
