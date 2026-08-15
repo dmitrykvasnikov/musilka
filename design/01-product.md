@@ -176,12 +176,36 @@
       pass. The re-import step is the sharp end — it is what proves external IDs
       ([2.5.4](02-catalogue-model.md)) and duplicate handling
       ([2.4.9](02-catalogue-model.md)) actually work.
-      **2. A second person uses it.** Someone who is not the author signs up unaided, uploads their
-      own export, finds and fixes a wrong release, and comes back. Flows survive contact with a
-      stranger, or they do not work.
+      **2. ~~A second person uses it.~~ — WITHDRAWN 2026-08-15, see the amendment below.** Someone
+      who is not the author signs up unaided, uploads their own export, finds and fixes a wrong
+      release, and comes back. Flows survive contact with a stranger, or they do not work.
       **Honest caveat on the second:** it depends on finding a willing collector, which is outside
       the author's control. It is the one criterion that circumstance rather than unfinished work can
       block, and if it stalls, that is worth distinguishing from failure.
+
+      **Amendment 2026-08-15 — criterion 2 is withdrawn, and success is criterion 1 alone.**
+      Requested by the author, who wants to build as much as possible on localhost. The caveat above
+      already identified this as the one criterion that circumstance rather than unfinished work
+      could block; withdrawing it removes a dependency on a person nobody had found, rather than
+      lowering the bar on anything we control.
+      **What this does *not* change, which is most of it.** Criterion 1 stands untouched and is
+      still pass/fail on a real Discogs export — it needs [10.2](10b-import.md)'s converter and it is
+      still the thing [11.10](11-stack.md) turns into a property test, so the whole of E1 keeps its
+      shape. [1.1](01-product.md)'s standing constraint is likewise untouched: clean architecture,
+      tests, CI and a repository a stranger can read still apply to every commit. **The portfolio
+      artifact was always the repository, and it survives intact.**
+      **What it does change, stated so nobody rediscovers it as an inconsistency.** A **public
+      deployment is now deferred rather than gating** — it is still wanted, but nothing in E0 or E1
+      waits on it. Four consequences follow: [12.5](12-infrastructure.md)'s and
+      [13.6](13-legal.md)'s "give the domain reputation time before the stranger is invited" loses
+      its deadline (the work does not go away — it moves behind the deployment);
+      [15.4](15-roadmap.md)'s risk 8 disappears entirely; [7.8](07-search-ux.md)'s indexability
+      keeps its other justification but loses this one; and [13.3](13-legal.md)'s privacy policy and
+      ToS become **due before the first user who is not the author**, not before the first release,
+      because with one user there is no other party's personal data being processed.
+      **The one thing that would be dishonest to leave implied:** localhost cannot demonstrate
+      [9.x](09-nfr.md)'s operational half — TLS, deliverability, an off-box backup, an external
+      pinger. Those stay real work, marked as such, and are not quietly reclassified as done.
       **Why "judged as code" is not on this list, having been considered:** it is not a criterion but
       a **standing constraint**. [1.1](01-product.md) already sets the bar — clean architecture,
       tests, CI, a real deploy — and it applies to every commit from the first one. Restating it here

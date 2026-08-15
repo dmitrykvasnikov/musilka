@@ -85,10 +85,17 @@ The backlog lives in `plan/`, one file per **stage** ([15.6](design/15-roadmap.m
 
 | File | Stage |
 |------|-------|
-| `plan/E0-skeleton.md` | E0 — on the internet, CI green, backups restore (T-1 … T-33) |
+| `plan/E0-skeleton.md` | E0 — running under systemd behind nginx, CI green, backups restore (T-1 … T-33, T-191 … T-194) |
 | `plan/E1-mvp.md` | E1 — the collector's round trip, nine slices (T-34 … T-160) |
 | `plan/E2-messaging.md` | E2 — messaging (T-161 … T-173) |
 | `plan/E3-depth.md` | E3 — depth (T-174 … T-190) |
+
+**Localhost is the target environment** until further notice: [1.10](design/01-product.md) was
+amended on 2026-08-15 to withdraw the "a second person uses it" criterion, so a public deployment is
+deferred and non-gating. The rule that keeps that honest — an invariant in `design/NOTES.md` —
+is that **anything localhost cannot exercise is marked as unexercised, never as done**, and exactly
+four things are on that list: TLS issuance, mail deliverability, an off-box backup, an external
+pinger.
 
 Plus `plan/README.md` (index and conventions). **Reading:** the stage file being worked on, and the
 design sections its tasks cite — not the whole folder, which is the reason for the split.

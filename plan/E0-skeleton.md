@@ -1,8 +1,12 @@
 # E0 — Skeleton
 
-**Size:** 3–4 weeks ([15.1](../design/15-roadmap.md)) · **Tasks:** T-1 … T-33
+**Size:** 3–4 weeks ([15.1](../design/15-roadmap.md)) · **Tasks:** T-1 … T-33, plus T-191 … T-194
 
-**Exit:** a deployed application, a green pipeline, and a restore that has actually been performed.
+**Exit, amended 2026-08-15:** a **running** application behind nginx under systemd, a green
+pipeline, and a restore that has actually been performed. [15.1](../design/15-roadmap.md) said
+*deployed*; [1.10](../design/01-product.md)'s amendment deferred the public deployment, so the exit
+is the same rehearsal against localhost and the four vendor-shaped remainders live in
+[their own section](#the-deployment-deferred) below.
 Not a feature — a rehearsal of the whole architecture with one column of business logic, which is
 the cheapest possible way to find out that the shape is wrong.
 
@@ -13,17 +17,21 @@ T-8), and build and deploy (T-19 … T-25). If this stage runs well past four we
 signal [15.4](../design/15-roadmap.md) names — and the response is
 [11.2](../design/11-stack.md)'s rule, not a language change on a bad week.
 
-**Week one** ([15.3](../design/15-roadmap.md)) is **T-1, T-4, T-6, T-7, T-8, T-9, T-16, T-18, T-19**
-and, if [12.1](../design/12-infrastructure.md) has a provider by then, **T-21, T-23, T-24**. If it
-does not, week one ends at green CI and the deploy slips — the work does not. Note that production
-will show an empty catalogue whatever happens: [10.2.10](../design/10b-import.md) forbids loading
-catalogue rows by any channel including `psql`, so the release page is exercised by T-17's fixtures
-and by T-18's integration test, and the first real row arrives through a form in E1.2.
+**Week one** ([15.3](../design/15-roadmap.md)) is **T-1, T-4, T-6, T-7, T-8, T-9, T-16, T-18, T-19**,
+and [15.3](../design/15-roadmap.md)'s caveat that step 6 might slip **no longer applies** — T-21,
+T-23, T-24 and T-25 all run locally now, so week one can end at a release installed under systemd
+behind nginx rather than at green CI. Note that the instance will show an empty catalogue whatever
+happens: [10.2.10](../design/10b-import.md) forbids loading catalogue rows by any channel including
+`psql`, so the release page is exercised by T-17's fixtures and by T-18's integration test, and the
+first real row arrives through a form in E1.2.
 
-**Nine of these tasks are `[~]`** and every one of them waits, directly or through another, on the
-same thing: nobody has picked a hosting provider or a mail sender
-([12.1](../design/12-infrastructure.md), [12.5](../design/12-infrastructure.md)). Nothing analytical
-is blocked, and the other 24 tasks can be finished without either name.
+**Six tasks are `[~]`, down from nine** ([1.10](../design/01-product.md)'s amendment, 2026-08-15):
+T-22 and T-30 in place above, plus T-191 … T-194 in their own section. **Everything else in E0 is
+ordinary open work needing no vendor name.**
+The rule that keeps this honest, and it is now an invariant in
+[NOTES.md](../design/NOTES.md): **anything localhost cannot exercise is marked as unexercised, never
+as done.** Four things are on that list and no others — TLS issuance, mail deliverability, an
+off-box backup, an external pinger. Each rescoped task above names its own untested remainder.
 
 ## The repository
 
@@ -157,16 +165,27 @@ is blocked, and the other 24 tasks can be finished without either name.
       what makes a dynamically linked binary safe to copy across. That is the whole of
       containerisation's role here: a reproducible builder, not a runtime. No Docker on the box, no
       Nix.
-- [~] T-21 Provision the box (per 12.1, 11.4, 7.2, 9.5) — waiting on 12.1's provider
-      One VPS, EU/EEA region ([13.3](../design/13-legal.md)), Debian stable, 2 vCPU / 4 GB. An
-      unprivileged `musilka` user; Postgres on the pinned major reachable **only over the unix
-      socket**, never a TCP port, with peer authentication.
-      **Do the one-time Postgres setup at install, before there are users rather than during an
-      incident:** `shared_preload_libraries=pg_stat_statements` ([9.5](../design/09-nfr.md)) plus
-      `pg_trgm` and `unaccent` ([11.4](../design/11-stack.md), [7.2](../design/07-search-ux.md)) —
-      the first needs a restart. Install `libvips`, `rclone`, `age` and `certbot` from the
-      distribution's packages.
-- [~] T-22 Domain, DNS and mail records (per 13.6, 12.5) — waiting on 12.5's sender
+- [ ] T-21 Production-shaped Postgres and service user, **locally** (per 12.1, 11.4, 7.2, 9.5)
+      Rescoped 2026-08-15 by [1.10](../design/01-product.md)'s amendment: the *box* is T-191; what is
+      unblocked and worth doing now is everything about the box's configuration that is not the box.
+      An unprivileged `musilka` system user; Postgres on the pinned major reachable **only over the
+      unix socket**, never a TCP port, with **peer authentication** — which is the whole reason
+      [12.6](../design/12-infrastructure.md) has no database password to store.
+      **The one-time setup, done before there are users rather than during an incident:**
+      `shared_preload_libraries=pg_stat_statements` ([9.5](../design/09-nfr.md)) plus `pg_trgm` and
+      `unaccent` ([11.4](../design/11-stack.md), [7.2](../design/07-search-ux.md)) — the first needs
+      a restart. Install `libvips`, `rclone` and `age`.
+      **Not the same thing as T-4's compose Postgres**, and do not let it become one:
+      [12.2](../design/12-infrastructure.md) keeps `docker compose` as the *development* database
+      and `cabal run` as the edit loop. This is the socket-and-peer-auth path that only production
+      uses, rehearsed once so that T-191 is a copy rather than a discovery.
+      **Untested until T-191:** the EU/EEA region, Debian stable, and 4 GB against
+      [14.2](../design/14-security.md)'s Argon2id at 64 MiB per concurrent hash.
+- [~] T-22 Domain, DNS and mail records (per 13.6, 12.5) — **deferred with the deployment**
+      *2026-08-15: no longer blocks anything, because [1.10](../design/01-product.md)'s amendment
+      removed the stranger this was timed against. Locally, T-38's mail port points at a catcher and
+      the verification flow works end to end — which exercises the templates and the queue job
+      honestly, and deliverability not at all. Do not confuse the two.*
       **Register the domain and publish SPF, DKIM and DMARC in the same sitting as T-21**, not
       after. [NOTES.md](../design/NOTES.md) has flagged this since 2026-08-14 as the thing that
       quietly breaks a load-bearing decision: a fresh domain with no records lands
@@ -176,37 +195,58 @@ is blocked, and the other 24 tasks can be finished without either name.
       [14.5](../design/14-security.md) all lean on instead of a captcha.
       DMARC at `p=none` moving to `p=quarantine` once the reports are clean. `abuse@` and `privacy@`
       forward to the operator's mailbox; **nothing on the box listens on port 25**.
-- [~] T-23 nginx and TLS (per 12.5, 9.4, 14.4) — waiting on 12.1
-      certbot for Let's Encrypt; HTTP → HTTPS; a generous per-IP request cap aimed at a scanner
-      rather than a user; **body caps of 15 MB on the image upload route, 20 MB on the import route
-      and something small everywhere else**, applied at the edge before a byte reaches the
-      application; request and slow-body timeouts; pass-through to the socket the application
-      listens on. Security headers stay in the application (T-13).
-- [~] T-24 systemd unit and journald (per 12.2, 9.5, 14.6) — waiting on 12.1
+- [ ] T-23 nginx and the edge caps, **locally** (per 12.5, 9.4, 14.4)
+      Rescoped 2026-08-15: everything except certificate issuance runs on localhost, and it is the
+      half that carries the security properties.
+      A generous per-IP request cap aimed at a scanner rather than a user; **body caps of 15 MB on
+      the image upload route, 20 MB on the import route and something small everywhere else**,
+      applied at the edge before a byte reaches the application; request and slow-body timeouts;
+      pass-through to the socket the application listens on. Security headers and CSP stay in the
+      application (T-13).
+      Use a self-signed certificate so the HTTP → HTTPS redirect and **`Secure`-only cookies** are
+      actually exercised — [12.4](../design/12-infrastructure.md) names the proxy caps and TLS-only
+      cookies as precisely the two things normally untested locally, and this task exists to make
+      that untrue.
+      **Untested until T-192:** certbot issuance and renewal, and HSTS against a real certificate.
+- [ ] T-24 systemd unit and journald (per 12.2, 9.5, 14.6)
+      *Unblocked 2026-08-15 — this needs no vendor at all, and the local rehearsal is the real
+      thing.*
       `Restart=on-failure`, `EnvironmentFile=/etc/musilka/env` (root-owned, `0600`),
       `ProtectSystem=strict`, `PrivateTmp`, `NoNewPrivileges` — which matter most for the `vips`
       subprocess [14.4](../design/14-security.md) calls the largest attack surface in the system.
       journald only, `MaxRetentionSec=30day`, no shipping anywhere.
-- [~] T-25 Deploy workflow and rollback (per 12.3) — waiting on 12.1
-      On green `main` only: build in T-20's container, `scp` to
-      `/opt/musilka/releases/<git-sha>/`, flip the `current` symlink, `systemctl restart`, poll
-      `/healthz`; on failure flip back and restart. Keep the last five releases.
+- [ ] T-25 Release mechanism and rollback, **locally** (per 12.3)
+      Rescoped 2026-08-15: the mechanism runs end to end against localhost, and it is one of
+      [1.12](../design/01-product.md)'s four known gaps — worth rehearsing early precisely because
+      it is a gap.
+      Build in T-20's container, install to `/opt/musilka/releases/<git-sha>/`, flip the `current`
+      symlink, `systemctl restart`, poll `/healthz`; on failure flip back and restart. Keep the last
+      five releases.
       **Migrations are not a deploy step** — T-8 applies them at startup, so the restart is the
       migration, and a rollback does not undo one. No tags, no version numbers, no changelog:
       every green commit on `main` is the release. `workflow_dispatch` for a manual redeploy.
-      The deploy credential is an SSH key in Actions secrets for a `deploy` user that may write only
-      under `/opt/musilka/releases` and restart one unit through a narrow sudoers rule.
+      **The narrow sudoers rule is part of this task, not T-193's:** a `deploy` user that may write
+      only under `/opt/musilka/releases` and restart one unit. Rehearse the privilege boundary
+      locally; it is the only credential in the system that lets a remote service change a machine,
+      and it is worth having got right before it is pointed at a real one.
+      **Untested until T-193:** the Actions → box hop, `scp` over a real network, and the SSH key in
+      Actions secrets.
 
 ## Backups, and the drill that makes them real
 
-- [~] T-26 Nightly encrypted backup (per 9.3) — waiting on 12.1's second provider
-      `pg_dump -Fc` nightly, encrypted with `age` (public key on the box, **private key not on the
-      box** — password manager plus paper), uploaded to a **private** bucket at a *different*
-      provider from the image bucket. Retention 7 daily / 4 weekly / 3 monthly. RPO 24 hours, RTO
-      about an hour, both accepted explicitly.
+- [ ] T-26 Backup job: dump, encrypt, upload — **against MinIO** (per 9.3)
+      Rescoped 2026-08-15. `pg_dump -Fc` nightly on a timer, encrypted with `age` (public key on the
+      machine, **private key not on it** — password manager plus paper), uploaded to a private
+      bucket. Retention 7 daily / 4 weekly / 3 monthly, enforced and *tested* by expiring a fake
+      history rather than by waiting three months. RPO 24 hours, RTO about an hour.
       Encryption is not decoration: the dump contains every private message in plaintext
       ([5.8](../design/05-messaging.md)) and every email address. A lost key means lost backups, and
-      that is the trade being made knowingly.
+      that is the trade being made knowingly. **Rehearsing the key handling now is the point** — it
+      is the part that is embarrassing to get wrong later.
+      **Not a backup yet, and the plan says so rather than implying otherwise:**
+      [9.3](../design/09-nfr.md) states that a backup on the same machine is not a backup and one in
+      the bucket you are also backing up is not two copies. T-194 makes it true; this task makes the
+      *script* true.
 - [ ] T-27 Restore script (per 9.3)
       **A script in the repository, not a remembered sequence of commands**: download, decrypt,
       `pg_restore` into a scratch database, run the application against it. This is also what
@@ -217,23 +257,31 @@ is blocked, and the other 24 tasks can be finished without either name.
       CI runs T-27's script every week against a dump of T-17's fixtures. It catches the ordinary
       breakage — a changed Postgres version, a renamed flag, a script that rotted — without touching
       production data.
-- [~] T-29 The first restore drill, by hand, from a real backup (per 9.3) — waiting on T-26
-      **Before the first real user, not after.** The check is not "the restore exited 0" but: row
-      counts within expectation, the newest revision is from yesterday, the app boots, one release
-      page renders, one login works. Monthly thereafter.
+- [ ] T-29 The first restore drill, by hand (per 9.3)
+      *Unblocked 2026-08-15 — the drill tests whether the **script** is correct, which is the whole
+      of its value, and that is fully exercisable against T-26's local backup.*
+      The check is not "the restore exited 0" but: row counts within expectation, the newest revision
+      is from yesterday, the app boots, one release page renders, one login works. Monthly
+      thereafter.
       An untested backup is a belief, and this is the one item in E0 that is easy to leave undone
       for ever.
 
 ## Observability and the runbook
 
-- [~] T-30 External uptime pinger and backup alarm (per 9.5) — waiting on T-21
+- [~] T-30 External uptime pinger and backup alarm (per 9.5) — **cannot be rehearsed locally**
       Exactly two alerts, both by email, both about things that are silently broken. The pinger hits
-      `/healthz` and **must not run on the box it is watching**. The backup job mails on failure,
-      *and* the absence of a success line for 36 hours is itself the alarm — a backup that stopped
-      running silently is [9.3](../design/09-nfr.md)'s worst case.
+      `/healthz` and **must not run on the box it is watching** — [9.5](../design/09-nfr.md) says so
+      in terms, which is exactly why localhost pinging localhost would be theatre rather than a
+      rehearsal. Stays `[~]` honestly.
+      The backup half is different and rides on T-26: the job mails on failure, *and* the absence of
+      a success line for 36 hours is itself the alarm — a backup that stopped running silently is
+      [9.3](../design/09-nfr.md)'s worst case. That check can be written now and pointed at a local
+      sink.
       A third alert is the one that teaches the operator to ignore the first two.
-- [~] T-31 Nightly error digest (per 9.5) — waiting on the mail sender (T-38, 12.5)
-      A cron greps error-level lines from the last 24 hours and mails counts and messages — never
+- [ ] T-31 Nightly error digest (per 9.5)
+      *Unblocked 2026-08-15 — it sends through T-38's mail port, which locally is a catcher, so the
+      digest is fully exercisable.*
+      A timer greps error-level lines from the last 24 hours and sends counts and messages — never
       payloads, per [14.6](../design/14-security.md) — to the operator. This is what replaces
       Sentry, at 90% of the value and none of the cost. If the digest is ever unreadably long, the
       problem is the errors.
@@ -242,6 +290,44 @@ is blocked, and the other 24 tasks can be finished without either name.
       (four secrets, by hand — undocumented rotation is rotation that never happens), and
       [9.2](../design/09-nfr.md)'s rule that a slow migration is run by hand against production
       before the deploy that needs it.
+
+## The deployment, deferred
+
+**Added 2026-08-15.** [1.10](../design/01-product.md)'s amendment made a public deployment deferred
+rather than gating, so the four tasks that genuinely need a vendor are collected here instead of
+sitting `[~]` in the middle of week-one work. **They are deferred, not dropped, and nothing about
+them got cheaper by waiting** — each is the untested remainder of a task above, named there so the
+seam is visible from both sides.
+
+**T-22** (domain and mail records) and **T-30** (the off-box pinger) belong to this cluster too;
+they stay in place above because that is where their reasoning lives.
+
+- [~] T-191 Provision the box (per 12.1, 13.3) — the remainder of T-21
+      One VPS, **EU/EEA region** ([13.3](../design/13-legal.md) makes this a published jurisdiction
+      statement, not a preference), Debian stable, 2 vCPU / 4 GB. Copy T-21's Postgres setup rather
+      than rediscovering it.
+      The three questions [12.1](../design/12-infrastructure.md) says to answer when it is taken up:
+      an EU/EEA region for the box **and both buckets**; two providers rather than one, for the
+      backup separation; and a payment method that actually works, which is the part no architecture
+      argument can settle.
+- [~] T-192 certbot and real TLS (per 12.5) — the remainder of T-23
+      Let's Encrypt from the distribution's package. Issuance and renewal are the untested path;
+      everything nginx does in front of them is already exercised by T-23.
+      HSTS becomes meaningful here — it is set by the application (T-13) but only means anything
+      once the proxy terminates real TLS.
+- [~] T-193 Deploy from Actions (per 12.3) — the remainder of T-25
+      `scp` to `/opt/musilka/releases/<git-sha>/` from CI on green `main`, using an SSH key in
+      Actions secrets for the `deploy` user T-25 already constrained. `workflow_dispatch` for a
+      manual redeploy or a forced rollback.
+      **GitHub is not a sub-processor** for [13.3](../design/13-legal.md)'s purposes — it holds
+      source and build artifacts, never user data — so this adds nothing to the privacy policy.
+- [~] T-194 Off-box backup at a second provider (per 9.3) — the remainder of T-26
+      Point T-26's upload at a **private bucket at a different provider from the image bucket**.
+      This is the task that turns T-26's script into an actual backup:
+      [9.3](../design/09-nfr.md)'s reasoning is the whole argument — a backup inside the thing being
+      backed up is one copy, and the database is otherwise one machine away from total loss.
+      **Do T-29's drill again immediately afterwards**, from the real remote copy. A restore path
+      that has only ever run against localhost is a restore path with one untested hop in it.
 
 ## Working notes
 

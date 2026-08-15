@@ -142,6 +142,15 @@ data licence, the code licence, the jurisdiction, and the brand.
       [12.1](12-infrastructure.md). **Both documents are written before the first real user, not
       now** — [section 15](15-roadmap.md) carries the task, and this item is the specification for
       what they must contain.
+      **Sharpened 2026-08-15 by [1.10](01-product.md)'s amendment: "the first real user" means the
+      first user who is not the author.** On a single-user localhost instance there is no other
+      party's personal data being processed, so none of the obligations above bite — there is no
+      controller/subject relationship, no sub-processor, and nothing to disclose to anyone. The
+      documents therefore move behind the deployment with it.
+      **Two things that do *not* move**, because they are about the repository rather than the
+      service: [13.2](13-legal.md)'s `LICENSE` and the discipline that no secret ever enters a public
+      repository, and [13.1](13-legal.md)'s CC0 decision, which is what a `/licence` page will state
+      whenever there is one to state it on.
 - [x] 13.4 Cookie banner and analytics (which one, and whether we need it at all).
       **Decision: no analytics of any kind, one cookie, and therefore no banner — and the absence of
       a banner is a property to defend rather than an omission.**
@@ -226,6 +235,10 @@ data licence, the code licence, the jurisdiction, and the brand.
       after it, and reputation is given time before a stranger is invited ([1.10](01-product.md)).
       [section 15](15-roadmap.md) carries it as a task on the critical path, and NOTES carries it as
       an open item.
+      **2026-08-15:** [1.10](01-product.md)'s amendment defers the deployment, so this leaves the
+      critical path — **the rule survives unchanged, it simply has no date.** The name stays locked
+      regardless: [13.6](13-legal.md)'s argument for locking it was that renaming is cheap today and
+      expensive in a month, and that is a fact about the repository rather than about a domain.
       **The logo is a text wordmark** in the site header, set in a system font
       ([9.1](09-nfr.md)'s payload budget has no room for a webfont and does not want one), plus a
       single-letter favicon. No logo file to commission, no brand guide.

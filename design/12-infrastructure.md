@@ -181,6 +181,16 @@ elsewhere in the design waits on those two names.
         [1.10](01-product.md)'s stranger is invited.
       - Verify deliverability against a real inbox at a large provider before that invitation, not
         after. It is a ten-minute check that protects the one criterion outside our control.
+      **Amended 2026-08-15 by [1.10](01-product.md).** Criterion 2 is withdrawn and the public
+      deployment is deferred, so **the invitation these two bullets are timed against no longer has
+      a date** — but neither bullet is cancelled and neither gets cheaper by waiting. They move to
+      the deployment, as a unit, with the rule intact: register the domain and publish all three
+      records *in the same sitting* as the first deploy setup.
+      **What replaces the sender locally:** a mail catcher (Mailpit or equivalent) behind the same
+      port [6.1](06-accounts.md)'s templates already send through. That exercises the four
+      templates, the queue job and the verification flow honestly; it exercises deliverability not
+      at all, and the difference must not be blurred — a green local flow says nothing about inbox
+      placement.
       - The sender must be in the EU/EEA like everything else ([13.3](13-legal.md)) and becomes the
         third entry on [13.3](13-legal.md)'s sub-processor list.
       - **We never run a mail server.** Outbound goes through the provider's SMTP or API; inbound is
@@ -263,7 +273,11 @@ elsewhere in the design waits on those two names.
          side rather than behind a login.
       **Why Issues stays on anyway.** [1.10](01-product.md)'s second success criterion is a stranger
       using the site, and a stranger needs somewhere to report a bug that is not the author's inbox.
-      Issues is that place. **Anything acted on becomes a task in `plan/` citing the issue** — the
+      Issues is that place.
+      **2026-08-15:** that criterion is withdrawn, so this reason is now weaker but not gone —
+      [13.2](13-legal.md) keeps the repository public from the first commit, and a reader of the code
+      is still someone who may want to report something. Issues costs nothing to leave enabled and
+      the rule that matters is unchanged: **it is an inbox, never the backlog.** **Anything acted on becomes a task in `plan/` citing the issue** — the
       inbox is not a second backlog, and the moment two lists both claim to be the truth, neither is.
       **Declined:** Linear, Jira and every hosted tracker (an account and a second surface for a
       solo project, and [1.6](01-product.md) means nothing pays for it); Issues as the backlog

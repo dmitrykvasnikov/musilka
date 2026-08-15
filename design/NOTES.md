@@ -325,6 +325,22 @@ Each one names the item it was decided in.
   key, drops the scratch database afterwards, and is a drill rather than an environment — it is also
   what replaces staging when a risky migration needs rehearsing ([9.2](09-nfr.md)).
 
+- **2026-08-15 — Localhost is the target environment until further notice, and deployment is
+  deferred rather than cancelled.** [1.10](01-product.md)'s amendment withdrew the second success
+  criterion, so nothing in E0 or E1 waits on a hosting provider, a domain or a mail sender. The
+  rule this creates, and it is the one that keeps the deferral honest: **anything localhost cannot
+  exercise is marked as unexercised, never as done.** That list is short and fixed — TLS issuance
+  and renewal, mail deliverability and DKIM, an off-box backup at a second provider
+  ([9.3](09-nfr.md) is explicit that a backup on the same machine is not a backup), and
+  [9.5](09-nfr.md)'s external pinger, which that item already says must not run on the box it
+  watches. Everything else in [section 12](12-infrastructure.md) — the systemd unit, journald
+  retention, nginx with [9.4](09-nfr.md)'s caps, the release/symlink/rollback mechanism, the restore
+  script and its drill — is genuinely rehearsable locally and should be genuinely rehearsed.
+  **The counterpart obligation:** [12.4](12-infrastructure.md)'s "local is not a small production
+  and does not pretend to be" still holds. A local rehearsal is a rehearsal of *mechanism*, not a
+  second environment to keep in sync, and the moment it starts accumulating its own state it has
+  become the staging environment [12.4](12-infrastructure.md) turned down.
+
 ## Rejected approaches
 
 What we considered and turned down, and why — so we do not re-litigate it in three months.
@@ -620,10 +636,16 @@ Questions that must be answered before some other item can be closed. Format: wh
   2026-08-15**, immediately after section 2 removed what they were waiting on. **Section 1 is now
   fully closed.** The MVP is the collector's round trip (upload, browse, correct, image, search,
   export) with messaging, the public API and any moderation queue explicitly out; success is the
-  round trip working on a real export plus a second person using it unaided.
+  round trip working on a real export ~~plus a second person using it unaided~~ (withdrawn
+  2026-08-15, see the amendment below).
   **What this now constrains:** [section 15](15-roadmap.md) inherits a scope line and two sequencing
   rules (export before import; master merge early, not late), and every remaining P0 section should
   be read against the deferred list rather than designed in full.
+  **Amended 2026-08-15 — [1.10](01-product.md)'s criterion 2 (a second person) is withdrawn at the
+  author's request; success is the round trip alone.** [1.9](01-product.md)'s MVP scope is
+  **unchanged** — nothing leaves or enters the feature list — and criterion 1 still requires a real
+  Discogs export, so E1's shape and E1.7's necessity both stand. What changes is that **a public
+  deployment is deferred and non-gating**, which is now an invariant below.
 - ~~Multi-script artist and title names (`Кино` / `Kino`)~~ — **closed 2026-08-15** at
   [2.2.1](02-catalogue-model.md): one artist, many name rows, one search index, no transliteration
   anywhere. Kept here only as a pointer, since [1.8](01-product.md) and several notes refer to it as
@@ -683,6 +705,15 @@ Questions that must be answered before some other item can be closed. Format: wh
   analytical** — no design decision anywhere waits on the names. [15.4](15-roadmap.md) carries
   deliverability as risk 2 and [15.3](15-roadmap.md) notes that week one ends at green CI if the
   provider is still unchosen.
+  **Status as of 2026-08-15 (second update) — this stops being a blocker at all.**
+  [1.10](01-product.md)'s amendment withdrew the second success criterion, so **there is no stranger
+  to invite and no deadline to miss**, and [15.3](15-roadmap.md)'s "week one ends at green CI"
+  caveat above is superseded: week one now ends at a release running under systemd behind nginx on
+  localhost. The domain, the mail records and the reputation window are all still required *for a
+  deployment*, which is deferred rather than gating — so this entry becomes a **precondition of
+  deploying**, recorded in [12.5](12-infrastructure.md), rather than an open question blocking other
+  items. Nothing about it got cheaper; it simply stopped being urgent, and the rule it carries — all
+  three records in the same sitting as the first deploy setup — is unchanged.
 - ~~[10.4.6](10d-model-requirements.md) public entity identifiers ← nothing, and that is the
   problem~~ — **closed 2026-08-15.** It is `bigint GENERATED ALWAYS AS IDENTITY`, one sequence per
   entity type, exposed as it is, and it is now an invariant above. Both callers are satisfied:

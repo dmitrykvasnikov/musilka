@@ -70,7 +70,26 @@ Nothing here reopens a design decision. Where a task looks like a choice, the ch
 `[~]` and names what it is waiting on. The three open things in the whole design as of
 2026-08-15 are [10.2.2](../design/10b-import.md) (a real Discogs collection export, blocks E1.7
 alone) and [12.1](../design/12-infrastructure.md)/[12.5](../design/12-infrastructure.md) (hosting
-and mail vendors, block the first deploy).
+and mail vendors, which now block only the deployment).
+
+## Localhost first
+
+**[1.10](../design/01-product.md) was amended on 2026-08-15:** the second success criterion — a
+second person using the site unaided — is withdrawn, and success is the round trip on a real export
+alone. **A public deployment is therefore deferred rather than gating**, and every `[~]` in this
+directory except `T-122` traces to that deferral.
+
+The rule that keeps it honest, and it is an invariant in [NOTES.md](../design/NOTES.md): **anything
+localhost cannot exercise is marked as unexercised, never as done.** Exactly four things are on that
+list — TLS issuance and renewal, mail deliverability and DKIM, an off-box backup at a second
+provider, and [9.5](../design/09-nfr.md)'s external pinger. Each task that was rescoped for
+localhost names its own untested remainder, and the remainders are collected in
+[E0's deployment section](E0-skeleton.md#the-deployment-deferred).
+
+The counterpart obligation, from [12.4](../design/12-infrastructure.md): **local is not a small
+production and must not pretend to be.** The rehearsal is of *mechanism*. The moment it starts
+accumulating state of its own, it has become the staging environment
+[12.4](../design/12-infrastructure.md) turned down.
 
 Read [`design/NOTES.md`](../design/NOTES.md) before adding a task. Its invariants are what stop a
 plausible-looking task from quietly breaking a closed section.

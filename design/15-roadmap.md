@@ -83,7 +83,8 @@ an order that is defensible line by line, and name the risks.
       irreversible decision in the design ([8.1](08-media.md) discards originals) and
       [1.4](01-product.md)'s predicted first cost overrun, so they are the thing least suited to
       being half-built while everything else moves.
-      **Exit from E1 is [1.10](01-product.md)'s two criteria**, not a feature list.
+      **Exit from E1 is [1.10](01-product.md)'s criterion 1**, not a feature list — criterion 2 was
+      withdrawn 2026-08-15, so the round trip on a real export is the whole of it.
 
       **E2 — messaging.** [1.9](01-product.md) put it out of the MVP because at tens of users there
       is nobody to message; it is the natural next vertical because [section 5](05-messaging.md)
@@ -173,6 +174,12 @@ an order that is defensible line by line, and name the risks.
          *Signal:* the check [12.5](12-infrastructure.md) requires before
          [1.10](01-product.md)'s stranger is invited. *Response:* SPF, DKIM, DMARC published with the
          first deploy setup, and reputation given time.
+         **Demoted 2026-08-15 by [1.10](01-product.md)'s amendment, and only demoted.** With the
+         public deployment deferred, this risk cannot fire during E0 or E1 — a local mail catcher
+         serves the barrier for a single-user localhost instance, and the barrier itself is *not*
+         relaxed ([6.1](06-accounts.md) is enforced in the service layer either way). It returns to
+         rank 2 the day a deployment is scheduled, undiminished, because none of its cost was paid
+         in the meantime.
       3. **The Discogs collection export's real columns** — still unverified
          ([10.2.2](10b-import.md)), along with the default folder name ([10.2.5](10b-import.md)) and
          whether an instance id exists ([10.2.7](10b-import.md)). *Mitigated twice over:* the parser
@@ -201,9 +208,16 @@ an order that is defensible line by line, and name the risks.
          system and [8.3](08-media.md) runs it in the request. *Response:* already specified —
          subprocess, dimension cap, memory limit, timeout, systemd hardening
          ([12.2](12-infrastructure.md)).
-      8. **[1.10](01-product.md)'s second success criterion depends on finding a willing collector**,
-         which is outside the author's control. [1.10](01-product.md) already says to distinguish
-         that from failure; the roadmap consequence is to start looking during E1, not after it.
+      8. ~~**[1.10](01-product.md)'s second success criterion depends on finding a willing
+         collector**, which is outside the author's control. [1.10](01-product.md) already says to
+         distinguish that from failure; the roadmap consequence is to start looking during E1, not
+         after it.~~
+         **Gone 2026-08-15**, and it is the only risk on this list ever removed rather than
+         mitigated: [1.10](01-product.md)'s amendment withdrew the criterion, so there is nothing
+         left to be at risk of. **The list is now seven.**
+         *Note what did not move with it:* a real Discogs **collection export** (risk 3) is still
+         needed for E1.7, and it still has to come from somebody else. Losing the stranger as a
+         *criterion* does not remove the one file we need from a person.
       **The legal residual is not on this list and is not forgotten**: [NOTES.md](NOTES.md)'s EU
       database-rights note is accepted for ingest and becomes live only at
       [10.3.4](10c-export.md)'s dump, which is E4 and gated on a real legal read.
@@ -223,7 +237,7 @@ an order that is defensible line by line, and name the risks.
       reads our own format only** and needs no third-party file to be finished or tested.
       **Discogs converters — E1.7**, and they are **not optional despite being a separate slice**:
       our own format exists only after someone has used the site, so until E1.7 ships there is no
-      way for a real collector to get in, and [1.10](01-product.md)'s criteria both stay unreachable.
+      way for a real collection to get in, and [1.10](01-product.md)'s criterion 1 stays unreachable.
       The separation buys blast radius, not deferral — [10.2.2](10b-import.md)'s unverified columns
       are confined to a pure module, and a second source later is another slice of the same shape.
       **The API — not scheduled** ([10.1.1](10a-public-api.md) found no audience). If the underlying
@@ -282,6 +296,24 @@ an order that is defensible line by line, and name the risks.
       **What is not in `plan/`:** no new decisions. Where a task looked like a choice, the choice was
       made in `design/` and the task is its implementation; where the design left something open, the
       task carries `[~]` and names what it waits on.
+      **Update 2026-08-15, after [1.10](01-product.md)'s amendment — 194 tasks, and E0 is no longer
+      vendor-blocked.** Withdrawing the second success criterion deferred the public deployment,
+      which let seven E0 tasks be rescoped to localhost, where they are genuine rehearsals rather
+      than substitutes: the systemd unit and journald retention, nginx with
+      [9.4](09-nfr.md)'s caps behind a self-signed certificate (so TLS-only cookies are actually
+      exercised — [12.4](12-infrastructure.md) named them as normally untested), the
+      release/symlink/restart/rollback mechanism with its sudoers boundary, Postgres over a unix
+      socket with peer authentication, the backup script with its `age` key handling, the restore
+      drill, and the error digest.
+      **The four vendor-shaped remainders became their own tasks rather than disappearing into the
+      rescoped ones** — `T-191` the box, `T-192` certbot, `T-193` deploy from Actions, `T-194` the
+      off-box backup — and each rescoped task names its own untested remainder, so the seam is
+      visible from both sides. **E0 goes from nine `[~]` to six** (`T-22`, `T-30` and those four),
+      and the count of `[~]` in the whole plan goes from twelve to twelve for a different reason:
+      three legal tasks moved behind the deployment as [13.3](13-legal.md) now requires, one task
+      (`T-159`) was dropped outright, and four were created.
+      **The invariant this rests on** is in [NOTES.md](NOTES.md): anything localhost cannot exercise
+      is marked as unexercised, never as done — and that list is exactly four items long.
 
 ## Working notes
 

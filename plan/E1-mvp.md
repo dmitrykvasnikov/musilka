@@ -3,8 +3,14 @@
 **Size:** 4–5 months ([15.1](../design/15-roadmap.md)) · **Tasks:** T-34 … T-160
 
 **What it is:** [1.9](../design/01-product.md)'s collector's round trip — upload, browse, correct,
-image, search, export. **Exit is [1.10](../design/01-product.md)'s two criteria, not a feature
-list:** the round trip works on a real export, and a second person uses it unaided.
+image, search, export. **Exit is [1.10](../design/01-product.md)'s criterion 1, not a feature
+list:** a real Discogs export imports, nothing is orphaned, twenty releases get corrected by hand
+with the history intact, the whole collection exports, and **re-importing that export lands in the
+same state with no duplicates**.
+~~and a second person uses it unaided~~ — **withdrawn 2026-08-15** by
+[1.10](../design/01-product.md)'s amendment. The scope of E1 is unchanged; what changed is that a
+public deployment is deferred and non-gating, which is why nine tasks below moved rather than
+disappeared.
 
 **The nine slices are in the order [15.1](../design/15-roadmap.md) argued for, and the order is
 itself a decision.** Accounts first because everything else is user-scoped and
@@ -858,7 +864,7 @@ resolution.
       **The original is discarded once the derivatives exist**, and this is the irreversible one. If
       it is ever reopened it is "keep originals from this date onward", and older images simply do
       not have one.
-- [ ] T-146 S3 implementation and bucket policy (per 8.2, 12.1, 14.3) — *provider named by T-21*
+- [ ] T-146 S3 implementation and bucket policy (per 8.2, 12.1, 14.3) — *provider named by T-191*
       The S3 API and nothing beyond it: no signed-URL upload flow, no bucket events, no lifecycle
       rules, no versioning. The image prefix is public-read and **served from the bucket's own
       endpoint**, so uploaded bytes are never same-origin with a session cookie. Objects written with
@@ -891,7 +897,7 @@ resolution.
       address (T-153).
       A moderator-only `DELETE` route is enough; there is no report UI to reach it from until E3.
       Record the removal and its reason in the security log.
-- [~] T-151 Weekly image bucket sync (per 9.3, 8.2) — waiting on T-21's second provider
+- [~] T-151 Weekly image bucket sync (per 9.3, 8.2) — deferred with T-194
       `rclone sync` of the image prefix to a second bucket, weekly. `pg_dump` does not cover the
       bucket, and **because the original is discarded, image loss is permanent** — there is nothing
       to re-derive from. Weekly is enough given immutable content-addressed keys: nothing is ever
@@ -908,7 +914,17 @@ Not a tenth slice — the exit checklist. [13.3](../design/13-legal.md) hands ov
 are "easy to leave until after launch, which is why they are named here", and
 [9.3](../design/09-nfr.md) and [15.4](../design/15-roadmap.md) add the rest.
 
-- [ ] T-152 Privacy policy (per 13.3, 6.5, 5.8, 14.6)
+**Re-sorted 2026-08-15.** [13.3](../design/13-legal.md) now reads "the first real user" as **the
+first user who is not the author** — on a single-user localhost instance there is no other party's
+personal data being processed, so the legal documents have nothing to govern yet. They move behind
+the deployment as `[~]`, together with everything else that presupposes a public site. **Three
+tasks stay in E1 unchanged, because they are about the software rather than the service:** T-154
+(the guidelines are how *you* stay consistent with your own model), T-156 (error pages are pages),
+and T-158 (accessibility is a property of the HTML, not of where it is served from).
+T-160 stays too — [9.3](../design/09-nfr.md)'s drill is about the restore script, and E1 is still
+not finished until it has been run once with a real collection in the database.
+
+- [~] T-152 Privacy policy (per 13.3, 6.5, 5.8, 14.6) — deferred with the deployment
       Written to the GDPR. **The exhaustive table of personal data we hold**, because a policy that
       is not exhaustive is worse than none. The three statements [6.5](../design/06-accounts.md)
       forbids overstating, in the words they must appear in: deletion *empties* the account rather
@@ -919,7 +935,7 @@ are "easy to leave until after launch, which is why they are named here", and
       consent basis anywhere**, because there is nothing to consent to. Backups hold a deleted
       account for up to ~90 days, disclosed, and are never restored to recover one. Sub-processors
       named — three lines, filled in by T-21 and T-22.
-- [ ] T-153 Terms of service, `/licence` and `/contact` (per 13.1, 13.5, 13.2, 9.2, 8.4)
+- [~] T-153 Terms of service, `/licence` and `/contact` (per 13.1, 13.5, 13.2, 9.2, 8.4) — deferred with the deployment
       The ToS says five things: **16+** (a checkbox, never verified); catalogue contributions are
       **CC0 1.0 including any sui generis database right**, and the contributor confirms they are
       entitled to grant it; we may edit, merge or remove any catalogue contribution and may suspend
@@ -939,7 +955,7 @@ are "easy to leave until after launch, which is why they are named here", and
       addition instead of forcing a value.
       The decisions already taken are worthless if only their author knows them. It grows a paragraph
       each time a moderator decision proves it needed one.
-- [ ] T-155 `robots.txt`, sitemap and per-page tags (per 7.8)
+- [~] T-155 `robots.txt`, sitemap and per-page tags (per 7.8) — deferred with the deployment
       Indexable: artist, master, release and label pages, and `/releases` unfiltered.
       **`Disallow` every filtered and search URL** — [7.3](../design/07-search-ux.md)'s facets
       multiply into a combinatorially infinite space, and letting a crawler in is a crawl trap that
@@ -949,14 +965,22 @@ are "easy to leave until after launch, which is why they are named here", and
       slug cannot fork a page into many, OpenGraph with the primary image, and minimal schema.org
       JSON-LD (`MusicAlbum`, `MusicRelease`, `MusicGroup`).
       `sitemap.xml` generated on request from a single query — no static file, no cron.
+      **The `Disallow` half is not deferrable in the way the rest is:** it is a defence rather than
+      an SEO nicety, so it ships **in the same sitting as the deployment**, never after it. The
+      canonical, OpenGraph and JSON-LD half can follow at leisure.
 - [ ] T-156 Static and error pages (per 7.5, 13.x)
       `/about`, plus 403, 404 and 500. Screen 24 of [7.5](../design/07-search-ux.md)'s list, and the
       last one.
-- [~] T-157 Deliverability check against a real inbox (per 12.5, 15.4 risk 2) — waiting on T-22
-      **A ten-minute check that protects the one success criterion outside our control.** Send all
-      four templates to a real mailbox at a large provider and confirm they arrive in the inbox, not
-      the spam folder. Then give the domain reputation time before T-159's invitation. DMARC moves
-      from `p=none` to `p=quarantine` once the reports are clean.
+- [~] T-157 Deliverability check against a real inbox (per 12.5, 15.4 risk 2) — deferred with T-22
+      **A ten-minute check, and it now protects the deployment rather than a success criterion** —
+      T-159 is dropped, so there is no invitation to time it against, but nothing else about it
+      changed. Send all four templates to a real mailbox at a large provider and confirm they arrive
+      in the inbox, not the spam folder. DMARC moves from `p=none` to `p=quarantine` once the reports
+      are clean, and the domain gets reputation time before anyone else is pointed at it.
+      **What the local mail catcher does and does not tell you:** it proves the templates render, the
+      queue job runs and the verification flow closes. It says nothing whatsoever about inbox
+      placement, and treating a green local flow as evidence here is the specific mistake this task
+      exists to prevent.
       If this fails, [6.1](../design/06-accounts.md)'s barrier fails, and with it
       [4.9](../design/04-editing.md), [5.7](../design/05-messaging.md) and
       [14.5](../design/14-security.md) at once.
@@ -969,11 +993,13 @@ are "easy to leave until after launch, which is why they are named here", and
       JavaScript disabled** — that is the claim [11.3](../design/11-stack.md) makes and the reason
       the accessibility story is cheap.
       Confirm every `light-dark()` has its plain fallback declaration (T-11).
-- [ ] T-159 Find a willing collector (per 1.10, 15.4 risk 8)
-      [1.10](../design/01-product.md)'s second criterion — a second person using the site unaided —
-      depends on finding someone, which is outside the author's control. **Start looking during E1,
-      not after it**, and distinguish "nobody was willing" from "it did not work".
-      T-122's real collection export is likely to come from the same person.
+- [-] T-159 ~~Find a willing collector~~ (per 1.10, 15.4 risk 8) — **dropped 2026-08-15**
+      [1.10](../design/01-product.md)'s criterion 2 is withdrawn, so there is no second person to
+      find and [15.4](../design/15-roadmap.md)'s risk 8 is gone with it.
+      **What does not go with it:** T-122 still needs a real Discogs **collection export**, and it
+      still has to come from somebody else. Losing the stranger as a criterion does not remove the
+      one file we need from a person — the ask is just much smaller now (send me a CSV, not use my
+      site).
 - [ ] T-160 Second restore drill and a `/status` read (per 9.3, 9.5)
       Monthly by hand, from the real production backup, now with real data in it. Row counts within
       expectation, newest revision from yesterday, app boots, one release page renders, one login

@@ -259,6 +259,12 @@ something countable.
       [11.1](11-stack.md) turned down the SPA and every page renders server-side
       ([11.5](11-stack.md)), so indexability costs nothing but a few tags. It is also the only way a
       stranger ever arrives, which [1.10](01-product.md)'s success criterion needs.
+      **2026-08-15:** that criterion is withdrawn and the deployment is deferred, which removes the
+      *urgency* rather than the decision — the tags still cost a few lines and there is nothing to
+      index until there is a public site. **The half that does not wait is the `Disallow` list**: it
+      is not an SEO nicety but a defence, because [7.3](07-search-ux.md)'s facets multiply into an
+      infinite URL space and a crawl trap pointed at one small box is the failure mode. Write it with
+      the deployment, never after it.
       **What is indexable:** artist, master, release and label pages, and `/releases` unfiltered.
       **What is not, and this is the part that matters:**
       - **Filtered and search URLs are `Disallow`ed in `robots.txt`.** [7.3](07-search-ux.md)'s facets
