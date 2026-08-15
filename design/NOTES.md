@@ -168,6 +168,38 @@ Each one names the item it was decided in.
   as each of those items requires — and the build enforces the direction, since `musilka-domain`
   cannot import `musilka-app` and `musilka-app` cannot import `musilka-web`
   ([11.11](11-stack.md)).
+- **2026-08-15 — A collection item always points at a release; nothing is ever left unresolved.**
+  `collection_item.release_id` is `NOT NULL`, exactly like `release.master_id`. An imported row that
+  matches nothing mints a stub release and its master rather than parking as raw text. Decided in
+  [10.2.3](10b-import.md), answering [10.4.3](10d-model-requirements.md). **The general rule it
+  belongs to:** this design never introduces a half-linked row awaiting human triage — the queue
+  would not be drained ([4.3](04-editing.md)) and every query would carry a clause about it forever.
+  Corrections happen through merge ([4.4](04-editing.md)), which exists.
+- **2026-08-15 — Matching is exact or it does not happen.** An import links a row to an existing
+  release only on an exact external id ([10.4.1](10d-model-requirements.md)'s `external_ids`);
+  barcode, catno+label and fuzzy matching are all refused. Decided in [10.2.4](10b-import.md). The
+  reason generalises to any later matching question: **a duplicate is repairable by merge, a wrong
+  link is silent and looks correct** — so where the two are the alternatives, prefer the duplicate.
+- **2026-08-15 — Export is synchronous and owner-only; the job queue exists for import alone.**
+  Every export streams from a single query in one request ([10.3.3](10c-export.md)), and only the
+  owner may export anything at all ([10.3.1](10c-export.md)). [11.7](11-stack.md) expected export
+  generation to be a queue consumer and it is not: the queue's users are the importer
+  ([10.2.8](10b-import.md)), outbound email and any image derivatives — which
+  [section 12](12-infrastructure.md) should read as one long-running job type, not a platform. The
+  importer inherits [11.7](11-stack.md)'s restartability rule in full, since a deploy will kill it
+  mid-file.
+- **2026-08-15 — Never discard silently, in both directions, and the export file is a contract.**
+  [10.2](10b-import.md)'s obligation to report what an import dropped or folded applies equally to
+  what an export flattens ([10.3.2](10c-export.md)). And once a file leaves the box its columns and
+  identifiers are public: appending a column is compatible, renaming or reordering is not. This is
+  what makes [10.4.6](10d-model-requirements.md) (public identifier shape) urgent rather than
+  cosmetic — the first export makes that choice permanent.
+- **2026-08-15 — There is no catalogue import channel, including for administrators.** An admin
+  loading a dump through `psql` is exactly what [1.5](01-product.md) forbids; the shell it happens in
+  does not change the act. Catalogue rows arrive only as import-minted stubs
+  ([10.2.3](10b-import.md)) or hand edits ([section 4](04-editing.md)). Decided in
+  [10.2.10](10b-import.md). Vocabulary seed data loaded by a migration ([11.8](11-stack.md)) is not
+  an exception — it is a list we wrote ourselves.
 
 ## Rejected approaches
 
@@ -306,6 +338,34 @@ What we considered and turned down, and why — so we do not re-litigate it in t
   [1.11](01-product.md)'s pace a number becomes a chore that displaces real tests. Replaced by a
   named list of what must be covered — including [1.10](01-product.md)'s export→import round trip as
   an automated property, rather than a thing checked once by hand.
+- **2026-08-15 — Discogs live sync via the user's OAuth, and two-way sync back to Discogs.** Turned
+  down at [10.2.1](10b-import.md) and [10.2.11](10b-import.md), and note that neither was really
+  ours to decide: [1.5](01-product.md) already bars the server from calling an external music
+  database. What the items add is the second cost — write-scoped credentials to a user's account at
+  another service, the largest thing we could hold, for a feature with no stated demand. Nothing is
+  reserved to keep the option open; it would be a new service against a new API, not a schema change.
+- **2026-08-15 — Unresolved collection items, a match-review screen, and fuzzy matching.** Turned
+  down at [10.2.3](10b-import.md) and [10.2.4](10b-import.md). All three are the same mistake in
+  different clothes: they answer an ambiguous row by asking a human to look at up to ten thousand of
+  them. The observed export carries enough (artist, title, label, catno, format) to mint a
+  recognisable stub, and [2.1.2](02-catalogue-model.md) already expects duplicate masters, so the
+  ambiguity is absorbed by merge instead.
+- **2026-08-15 — The preview-then-apply import, and keeping the uploaded file.** Turned down at
+  [10.2.6](10b-import.md). A preview needs a parsed ten-thousand-row intermediate with its own
+  garbage collection, and buys the right to refuse a result that is already reversible on the side
+  that matters (the user's own rows). The file is deleted when the job ends: it is personal data
+  ([10.5.3](10e-legal-sources.md)), the user still has the original, and keeping it means writing a
+  retention policy for something nobody reads. Only its `sha256` survives, for
+  [10.2.7](10b-import.md).
+- **2026-08-15 — XLSX export, and a Discogs-compatible CSV.** Turned down at
+  [10.3.2](10c-export.md). XLSX is a zip of XML needing a library for a file every spreadsheet opens
+  from CSV. Compatibility means tracking an undocumented third-party format we cannot test against —
+  while we have not even verified their collection export's columns ([10.2.2](10b-import.md)). The
+  part that carries real value, `discogs_release_id` as a column, is kept without the claim.
+- **2026-08-15 — Scheduled and filtered exports.** Turned down at [10.3](10c-export.md)'s working
+  notes: no monthly emailed export, no per-list format preference, no export of a filtered subset.
+  Each is a setting or a job for a page that is one click and under a second, and
+  [6.6](06-accounts.md) closed the settings question against exactly this kind of addition.
 
 ## Constraints discovered
 
@@ -374,6 +434,17 @@ Questions that must be answered before some other item can be closed. Format: wh
   above. **What it hands on:** [3.11](03-collection.md) inherits three cases to answer — edited
   (nothing happens), merged (the item follows the pointer), deleted (the item survives and is shown
   as deleted).
+- [10.3.4](10c-export.md) a public dump of the whole catalogue ← [13.1](13-legal.md) the data
+  licence. Deferred rather than refused, and blocked in one direction only: publishing a dump *is*
+  the licensing act, so it cannot precede the licence. It is also the point where the EU
+  database-rights constraint below stops being theoretical — that risk was accepted for ingesting
+  one user's export, never for redistributing the accretion. Nothing needs building now to keep it
+  possible; when it comes it is JSON Lines from [10.3](10c-export.md)'s serialisers plus a cron
+  entry.
+- [10.4.6](10d-model-requirements.md) public entity identifiers ← nothing, and that is the problem.
+  It is unblocked, and [10.3.2](10c-export.md) has just made it irreversible: the first exported
+  file puts whatever we chose into someone's hands permanently. It should be settled before the
+  first export ships, not before the API does.
 - Seeding the vocabularies ← [section 15](15-roadmap.md). Genres, styles, credit roles, format
   descriptors and country codes (ISO plus historical `SU`, `YU`, `DD`, `CS`) all need initial
   contents, and [1.5](01-product.md) forbids fetching them, so they are hand-written seed data — our
@@ -384,11 +455,19 @@ Questions that must be answered before some other item can be closed. Format: wh
 
 Claims in the agenda that are assumptions until checked against a real file, API or document.
 
-- [10.2.2](10b-import.md) — **partly done 2026-08-14.** A real Discogs *inventory* export was
-  inspected (see that file's working notes). Discogs' CSV conventions are now known; the
-  *collection* export's own column set is still unverified and needs a real collection export.
-- [10.2.7](10b-import.md) — still open. The inventory export carries `listing_id`; whether the
-  collection export carries `Collection Item Instance ID` is unconfirmed.
+- [10.2.2](10b-import.md) — **partly done 2026-08-14, and left open as `[~]` on 2026-08-15.** A real
+  Discogs *inventory* export was inspected (see that file's working notes). Discogs' CSV conventions
+  are now known; the *collection* export's own column set is still unverified and needs a real
+  collection export. **It no longer blocks anything**: [10.2.2](10b-import.md) decided the parser
+  resolves columns by header name through a lookup table and treats every column as optional, so a
+  wrong guess costs a table row and is surfaced by the importer's own report on the first real file.
+- [10.2.7](10b-import.md) — still open, and now **closed as a decision while open as a fact**.
+  Whether the collection export carries `Collection Item Instance ID` is unconfirmed (`listing_id`
+  in the inventory export is weak evidence that it does). [10.2.7](10b-import.md) specifies both
+  branches — instance id where present, file hash where not — so the answer changes which defence
+  runs, not the schema.
+- [10.2.5](10b-import.md) — the literal name of Discogs' default collection folder, which the
+  importer skips rather than turning into a tag every item carries. Same file, same verification.
 - [10.5.1](10e-legal-sources.md) — narrowed by [1.5](01-product.md): we never call the Discogs API,
   so its rate limits are moot. What remains to check is whether Discogs' ToS says anything about
   what a user may do with their **own** export.
