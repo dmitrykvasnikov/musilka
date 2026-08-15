@@ -110,6 +110,24 @@ Each one names the item it was decided in.
   **The scope is shared vocabularies.** A user's own collection tags ([3.3](03-collection.md)) are
   private labels nobody else groups by, and are freely named — not an exception to the rule but a
   case outside it.
+- **2026-08-15 — Messaging is the only social feature, at any stage.** No comments on releases, no
+  reviews or ratings, no following, no activity feed, no forum. Decided in
+  [5.11](05-messaging.md). The reason generalises past messaging and should be cited whenever a
+  discussion venue is proposed in a later section: **a comment is a fact that failed to become an
+  edit**, and [section 4](04-editing.md) exists so that observations land in the catalogue rather
+  than in a thread beside it. Same principle as [2.4.7](02-catalogue-model.md)'s refusal of a
+  data-quality field — the signal must be data, not an assertion parked next to the data.
+- **2026-08-15 — No real-time transport anywhere in the system.** No WebSocket, no SSE, no client
+  polling loop, no push service, in any feature. Decided for messaging in [5.3](05-messaging.md) and
+  [5.9](05-messaging.md), but it is a property of [1.4](01-product.md)'s target shape — one process
+  on one small box, deploys that may drop the site for ten seconds — so it binds
+  [section 9](09-nfr.md), [section 11](11-stack.md) and [section 12](12-infrastructure.md) equally.
+  Timeliness, where it is needed at all, is email.
+- **2026-08-15 — Private user content is plaintext in Postgres, and we say so rather than imply
+  otherwise.** Message bodies are readable by whoever holds the database; end-to-end encryption is
+  meaningless when the same party renders the pages. Decided in [5.8](05-messaging.md). The
+  obligation this creates is on [section 13](13-legal.md) (the privacy policy states it) and
+  [section 14](14-security.md) (at-rest and backup handling), not on the messaging module.
 
 ## Rejected approaches
 
@@ -169,6 +187,24 @@ What we considered and turned down, and why — so we do not re-litigate it in t
 - **2026-08-15 — `Series` as an entity.** Turned down at [2.1.5](02-catalogue-model.md) — real on
   real objects, but a mostly-empty table with a moderation cost at ~12,000 releases, and expressible
   as a format descriptor or a note. Additive if ever reopened.
+- **2026-08-15 — Comments on releases, reviews and ratings, following, an activity feed, a forum.**
+  All turned down at [5.11](05-messaging.md), and each for its own reason: comments compete with the
+  edit path, ratings are noise at ten users and are RateYourMusic's product anyway, a feed needs a
+  population and a rate of activity we will not have, and a forum is a second product with the
+  largest moderation load available to us.
+- **2026-08-15 — Group chat.** Turned down at [5.1](05-messaging.md). Participant management,
+  divergent read state and "who may add whom" bought for a population with no groups in it. Additive
+  later only because per-user state lives on a `conversation_participant` row for its own reasons.
+- **2026-08-15 — Attachments in messages, and markdown or restricted HTML in message bodies.**
+  Turned down at [5.4](05-messaging.md) and [5.5](05-messaging.md). Private attachments are the
+  unmoderatable worst case of the storage problem [1.4](01-product.md) already flags; rich text
+  means owning a sanitiser and a standing XSS liability for a table with dozens of rows. Plain text
+  upgrades to markdown cleanly later; the reverse migration does not exist.
+- **2026-08-15 — Web push, and read receipts.** Turned down at [5.9](05-messaging.md) and
+  [5.6](05-messaging.md). Push is a service worker, VAPID keys, a permission prompt and a
+  subscription table aimed at users who are not in the app. Receipts are social pressure and a
+  privacy choice made on the user's behalf — but `last_read_at` is stored regardless, so this is
+  another case of the [4.9](04-editing.md) asymmetry: store the data, do not build the tool.
 
 ## Constraints discovered
 
@@ -205,11 +241,21 @@ Questions that must be answered before some other item can be closed. Format: wh
   [2.2.1](02-catalogue-model.md): one artist, many name rows, one search index, no transliteration
   anywhere. Kept here only as a pointer, since [1.8](01-product.md) and several notes refer to it as
   an open question. It is now an invariant above.
-- [11.2](11-stack.md) final stack confirmation ← **section 5 only**, as of 2026-08-15; sections 3 and
-  4 are closed and section 2 was already out of it. [1.12](01-product.md) records the preference (Haskell) and
-  the fallback (Elixir/Phoenix); the binding choice waits until the remaining model sections are
-  known. Section 2's answer on size is in: four entities, no global track table, vocabularies as
-  seeded lookups, and an ordered artist credit in three parallel tables.
+- ~~[11.2](11-stack.md) final stack confirmation ← section 5~~ — **unblocked 2026-08-15.**
+  Sections 1–5 are now all closed and **nothing is waiting on a model section any more**;
+  [11.2](11-stack.md) can be decided whenever section 11 is taken up. What the model sections handed
+  it: section 2 — four entities, no global track table, vocabularies as seeded lookups, an ordered
+  artist credit in three parallel tables; sections 3 and 4 — no denormalisation, aggregate-snapshot
+  history, role-based rights in a service layer; section 5 — **nothing new at all** (no real-time
+  transport, no file storage, no search backend, no push service; five ordinary tables and one email
+  template). [1.12](01-product.md) records the preference (Haskell) and the fallback
+  (Elixir/Phoenix), and the argument for Elixir that the messaging module might have supplied — a
+  real-time vertical — **did not materialise**, since [5.3](05-messaging.md) refused real time
+  outright. The stack may be chosen on the catalogue's merits alone.
+- [6.5](06-accounts.md) account deletion ← inherits a constraint from [5.8](05-messaging.md), not a
+  blocker but a case that must be handled: a deleted account's messages have to survive in the other
+  party's mailbox, attributed to a tombstone user. One party's right to erasure cannot erase the
+  other party's record of a conversation they took part in. [13.3](13-legal.md) owns the legal half.
 - ~~Soft delete and merge semantics ← [section 4](04-editing.md)~~ — **closed 2026-08-15.** It is
   `merged_into` *and* `deleted_at`, as two distinct operations with different meanings, and neither
   is a consequence of edit versioning ([4.4](04-editing.md), [4.5](04-editing.md)). Now an invariant
