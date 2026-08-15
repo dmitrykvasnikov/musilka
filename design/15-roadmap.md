@@ -246,7 +246,42 @@ an order that is defensible line by line, and name the risks.
       ([10.1](10a-public-api.md)'s working notes list what it would need and every item already
       exists for another reason), webhooks ([10.1.10](10a-public-api.md) refuses them permanently),
       and [10.3.4](10c-export.md)'s dump (the same serialisers plus a cron entry).
-- [ ] 15.6 Once the key items are closed — produce `PLAN.md` with concrete tasks.
+- [x] 15.6 Once the key items are closed — produce `PLAN.md` with concrete tasks.
+      **Decision: not `PLAN.md` — [`plan/`](../plan/README.md), split by stage exactly as this
+      section's 2026-08-14 working note proposed and [12.8](12-infrastructure.md) confirmed. Written
+      2026-08-15: 190 tasks, `T-1` … `T-190`, across four files.**
+      **The shape, and why it is this shape rather than one file.** Cut by **stage**, not by design
+      section: a coding session inside E1 never needs E3, which is the property that makes the split
+      pay, while cutting by module would mean opening most of the folder every session. The file
+      names come from [15.1](15-roadmap.md) — `plan/E0-skeleton.md` (T-1 … T-33),
+      `plan/E1-mvp.md` (T-34 … T-160, under the nine slices in their argued order),
+      `plan/E2-messaging.md` (T-161 … T-173), `plan/E3-depth.md` (T-174 … T-190) — plus
+      `plan/README.md` as the index and the conventions.
+      **E4 deliberately has no file.** [15.1](15-roadmap.md) named it so that "later" has a name;
+      writing tasks for the public API or the catalogue dump would make them look scheduled.
+      **The conventions are `design/`'s, on purpose** — one set of rules to remember. Task IDs are
+      permanent and **global across the directory**, so a new task takes the next free number rather
+      than a number near its neighbours. Every task **cites the design item that justifies it**
+      ([12.8](12-infrastructure.md)'s first reason: `grep -rn "10.4.1" design/ plan/` finds both the
+      decision and the work). Progress is derived by `grep`, never stored. `[ ]` open, `[x]` done,
+      `[~]` blocked with the blocker named, `[-]` dropped. A task is **one sitting**
+      ([1.11](01-product.md)); one that is not is two tasks.
+      **Three things the writing surfaced that this section had not said.** (1) **Twelve tasks are
+      `[~]` at birth** — nine in E0 plus T-151, T-157 and T-122 — and all but T-122 trace to
+      [12.1](12-infrastructure.md)/[12.5](12-infrastructure.md)'s two unnamed vendors. (2) **Three
+      tasks sit outside the slice their design section belongs to**, each for a dependency reason:
+      the trigram index and artist picker land in E1.2 because every credit must resolve to an
+      artist entity ([7.4](07-search-ux.md)), the faceted list is built in E1.3 and reused by E1.8,
+      and [4.6](04-editing.md)'s `report` table lands in E1.2 because image takedown and vocabulary
+      requests both need a row to write long before E3 gives it a queue. (3) **E1 needed an exit
+      checklist that is not a slice** — [13.3](13-legal.md)'s four documents,
+      [4.11](04-editing.md)'s guidelines, [7.8](07-search-ux.md)'s robots and sitemap,
+      [12.5](12-infrastructure.md)'s deliverability check, the accessibility pass and
+      [9.3](09-nfr.md)'s second restore drill are each easy to leave undone for ever, and none of
+      them belongs inside a feature slice.
+      **What is not in `plan/`:** no new decisions. Where a task looked like a choice, the choice was
+      made in `design/` and the task is its implementation; where the design left something open, the
+      task carries `[~]` and names what it waits on.
 
 ## Working notes
 
@@ -286,3 +321,20 @@ section is closed and the only open items anywhere in `design/` are
 [12.1](12-infrastructure.md)/[12.5](12-infrastructure.md) (`[~]`, hosting and mail vendors,
 deferred by choice — they block the first deploy, not the plan). `plan/E0-skeleton.md` can be
 written from [15.3](15-roadmap.md) and [12.x](12-infrastructure.md) today.
+
+**2026-08-15 — Section closed. [`plan/`](../plan/README.md) is written and this section is done.**
+190 tasks in four files; the design is no longer the place work is tracked. Two consequences worth
+stating. **First, `design/` is now read-only in a specific sense:** it is still the single source of
+truth for *what was decided and why*, and a task that needs a decision changed reopens the design
+item rather than deciding it in `plan/`. **Second, the backlink is load-bearing in both directions**
+— `grep -rn "<item>" design/ plan/` is the navigation, so a task without its citation and a decision
+without a task are both defects. [12.7](12-infrastructure.md)'s commit convention closes the loop by
+citing the same item from the commit.
+
+**2026-08-15 — Where the design's remaining `[~]`s land in the plan**, so that closing them is a
+scheduled act rather than a discovery. [10.2.2](10b-import.md) becomes `T-122` and is the *only*
+thing E1.7 waits on — the cheapest research task in the project and the one that decides whether
+`T-132` exists at all. [12.1](12-infrastructure.md) and [12.5](12-infrastructure.md) become the nine
+`[~]` tasks in E0 plus `T-151` and `T-157`; **`T-22` is the one with teeth**, because the domain and
+its SPF/DKIM/DMARC records must be published in the same sitting as the box is provisioned or
+[6.1](06-accounts.md)'s barrier quietly breaks.

@@ -74,5 +74,32 @@ answer, ask rather than assume.
 
 ## Repository
 
-Nothing is implemented yet. `PLAN.md` gets written once the key items are closed
-([15.6](design/15-roadmap.md)); implementation starts from there.
+Nothing is implemented yet. **The design is closed** — every item is decided except
+[10.2.2](design/10b-import.md), [12.1](design/12-infrastructure.md) and
+[12.5](design/12-infrastructure.md), which are `[~]` deferred by choice.
+
+## Plan sessions
+
+The backlog lives in `plan/`, one file per **stage** ([15.6](design/15-roadmap.md),
+[12.8](design/12-infrastructure.md)), and it is where implementation work is tracked.
+
+| File | Stage |
+|------|-------|
+| `plan/E0-skeleton.md` | E0 — on the internet, CI green, backups restore (T-1 … T-33) |
+| `plan/E1-mvp.md` | E1 — the collector's round trip, nine slices (T-34 … T-160) |
+| `plan/E2-messaging.md` | E2 — messaging (T-161 … T-173) |
+| `plan/E3-depth.md` | E3 — depth (T-174 … T-190) |
+
+Plus `plan/README.md` (index and conventions). **Reading:** the stage file being worked on, and the
+design sections its tasks cite — not the whole folder, which is the reason for the split.
+
+Same conventions as `design/`: **task IDs are permanent and global** (`T-58` stays `T-58`; a new task
+takes the next free number in the whole directory), progress is derived (`grep -c '^- \[ \]'
+plan/*.md`), and the checkbox is the whole bookkeeping.
+
+**Every task cites the design item that justifies it** — `T-58 external_id table (per 10.4.1)` — so
+that `grep -rn "10.4.1" design/ plan/` finds both the decision and the work. A task without its
+citation is a defect.
+
+**`plan/` never decides anything.** If work needs a design answer that is not there, reopen the
+design item; do not settle it in a task.
