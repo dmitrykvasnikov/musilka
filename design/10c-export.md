@@ -27,6 +27,22 @@
       model holds including tags and owner-only fields. It exists to be re-imported: it is the
       format [11.10](11-stack.md)'s round-trip property runs on, and an export nobody can re-import
       is a promise nobody checks.
+      **Promoted 2026-08-15: this file is not merely re-importable, it is the *only* format
+      [10.2](10b-import.md) reads.** Every other source — Discogs today, anything later — is a pure
+      converter that produces these bytes and hands them to the same importer
+      ([10.2.1](10b-import.md)). Two consequences land on this item rather than on that one.
+      **First, two fields are added**, both of which the model already has and neither of which
+      changes the contract's shape: **`item_id`** on every collection and wantlist row (the item's
+      own identifier, [10.4.6](10d-model-requirements.md)), which is what makes re-importing our own
+      file idempotent per item ([10.2.7](10b-import.md)'s first defence); and **`exported_by`** plus
+      `exported_at` in the JSON header, because an id from a file is only trustworthy when the file
+      came from the account importing it — without that guard, user B's item 500 and user A's item
+      500 are indistinguishable. The CSV carries `item_id` as its first column and no header block;
+      it is the lossy format and idempotency rides on the JSON.
+      **Second, the contract now binds in both directions.** Renaming a column has always broken
+      somebody's spreadsheet; it now also breaks our own importer and every converter targeting it.
+      That raises the cost of a careless change and is the point — the format is the seam the whole
+      import path hangs on.
       **CSV is the human one** — one flat row per item, for spreadsheets and for feeding another
       service. Lossy by construction (tags collapse into one `;`-joined column, and a tag containing
       `;` cannot survive that — [3.3](03-collection.md) lets users name tags freely).
@@ -99,16 +115,27 @@ are the thing an implementation will actually read, and because
 Collection CSV:
 
 ```
-release_id, discogs_release_id, artist, title, label, catno, format, country, released,
-media_condition, sleeve_condition, rating, purchased_on, purchased_at, note, tags, added_at
+item_id, release_id, discogs_release_id, artist, title, label, catno, format, country,
+released, media_condition, sleeve_condition, rating, purchased_on, purchased_at, note,
+tags, added_at
 ```
 
 Wantlist CSV:
 
 ```
-release_id, discogs_release_id, artist, title, label, catno, format, country, released,
-priority, note, added_at
+item_id, release_id, discogs_release_id, artist, title, label, catno, format, country,
+released, priority, note, added_at
 ```
+
+`item_id` was added 2026-08-15 when [10.2.1](10b-import.md) made this format the importer's only
+input; it is the per-item identifier [10.2.7](10b-import.md)'s first defence needs.
+**It is placed first, which is a reorder and therefore a breaking change — and it is free exactly
+once, because no file has been exported yet.** [10.3.2](10c-export.md)'s contract begins with the
+first file that leaves the box in E1.5 ([15.1](15-roadmap.md)), not with this document; after that
+day the same edit would be appended at the end instead. Worth stating rather than quietly doing,
+since the rule is only as good as the times it is honoured when inconvenient.
+**A converter's output uses these exact columns**, leaving `item_id` and `release_id` empty and
+filling `discogs_release_id` — which is [10.2.4](10b-import.md)'s ladder expressed as a file.
 
 `media_condition` and `sleeve_condition` carry our own codes (`NM`, `VG+`, …), not Goldmine prose —
 [10.2.5](10b-import.md) parses the abbreviation on the way in, and writing the prose back out would

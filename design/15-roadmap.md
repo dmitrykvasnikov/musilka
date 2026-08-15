@@ -12,7 +12,7 @@ an order that is defensible line by line, and name the risks.
 
 - [x] 15.1 Slice everything above into stages: E0 (skeleton), E1 (MVP), E2, E3…
       **Decision: four stages and a fifth that is not scheduled. E1 is [1.9](01-product.md)'s round
-      trip, cut into eight slices whose order is itself a decision.**
+      trip, cut into nine slices whose order is itself a decision.**
 
       | Stage | What it is | Rough size |
       |---|---|---|
@@ -49,13 +49,18 @@ an order that is defensible line by line, and name the risks.
       3. **Collection and wantlist** ([section 3](03-collection.md)) — add from a release page,
          listing, tags, note, conditions, statistics, visibility and the share link.
       4. **Merge and delete** ([4.4](04-editing.md), [4.5](04-editing.md)).
-      5. **Export** ([10.3](10c-export.md)) — both formats, both files, and
-         [11.10](11-stack.md)'s round-trip property as far as it can go without an importer.
-      6. **Import** ([10.2](10b-import.md)) — parser, stub minting, exact matching, the background
-         job with progress, the report. Closes the round-trip property.
-      7. **Search** ([section 7](07-search-ux.md)) — FTS, the `search_tsv` column, facets,
+      5. **Export** ([10.3](10c-export.md)) — both formats, both files, `item_id` and the JSON
+         header ([10.3.2](10c-export.md)), and [11.10](11-stack.md)'s round-trip property as far as
+         it can go without an importer.
+      6. **Importer, our own format only** ([10.2](10b-import.md)) — the background job with
+         progress, [10.2.4](10b-import.md)'s three-rung ladder, stub minting, the report, rollback,
+         idempotency. **Closes the round-trip property with no third-party file involved.**
+      7. **Discogs converters** ([10.2.1](10b-import.md)) — collection CSV and wantlist CSV to our
+         format: pure, property-tested, no database access, carrying their findings into the same
+         report. This is the slice that lets a real person start.
+      8. **Search** ([section 7](07-search-ux.md)) — FTS, the `search_tsv` column, facets,
          autocomplete.
-      8. **Images** ([section 8](08-media.md)) — bucket, upload, `vips` derivatives, eight per
+      9. **Images** ([section 8](08-media.md)) — bucket, upload, `vips` derivatives, eight per
          release, the avatar.
 
       **Why that order, since it is the part worth arguing.** Accounts first because everything else
@@ -67,7 +72,13 @@ an order that is defensible line by line, and name the risks.
       real import lands in a system that must already be able to repair itself, and export must
       serialise merge pointers correctly anyway. Export before import is
       [1.9](01-product.md)'s rule — it needs no external format knowledge and delivers
-      [1.3](01-product.md)'s "never locked in" immediately. Search after import because tuning a
+      [1.3](01-product.md)'s "never locked in" immediately — and after
+      [10.2.1](10b-import.md)'s restructuring it is also a hard dependency, since the export file
+      **is** the importer's input format. **The importer before the converters**, which is the same
+      reasoning one step further on: the job, the ladder, the report and rollback must be provably
+      correct against a format we control before a third party's comma-packed, sentinel-bearing file
+      is pointed at them, and slice 6 closes [1.10](01-product.md)'s round-trip criterion on its
+      own. Search after converters because tuning a
       search over an empty catalogue is guesswork. **Images last, deliberately**: they are the one
       irreversible decision in the design ([8.1](08-media.md) discards originals) and
       [1.4](01-product.md)'s predicted first cost overrun, so they are the thing least suited to
@@ -163,12 +174,14 @@ an order that is defensible line by line, and name the risks.
          [1.10](01-product.md)'s stranger is invited. *Response:* SPF, DKIM, DMARC published with the
          first deploy setup, and reputation given time.
       3. **The Discogs collection export's real columns** — still unverified
-         ([10.2.2](10b-import.md) is the design's one remaining `[~]`), along with the default folder
-         name ([10.2.5](10b-import.md)) and whether an instance id exists
-         ([10.2.7](10b-import.md)). *Mitigated by design already:* the parser resolves columns by
-         header through a lookup table and treats every column as optional, so a wrong guess costs a
-         table row and surfaces in the importer's own report. **Get a real collection export before
-         E1.6** — it is the cheapest research task on this list.
+         ([10.2.2](10b-import.md)), along with the default folder name ([10.2.5](10b-import.md)) and
+         whether an instance id exists ([10.2.7](10b-import.md)). *Mitigated twice over:* the parser
+         resolves columns by header through a lookup table and treats every column as optional, so a
+         wrong guess costs a table row and surfaces in the report — and since
+         [10.2.1](10b-import.md), the whole guess lives inside a pure converter that the importer,
+         the job, the schema and the round-trip test do not depend on. **Get a real collection export
+         before E1.7** — it is the cheapest research task on this list, and it is now the only thing
+         that slice is waiting on.
       4. **Vocabulary seed data is unestimated.** [NOTES.md](NOTES.md) has flagged it as a real
          roadmap task nobody has sized: genres, styles, credit roles, company roles, format
          descriptors, identifier types and country codes including `SU`/`YU`/`DD`/`CS`, all
@@ -195,15 +208,24 @@ an order that is defensible line by line, and name the risks.
       database-rights note is accepted for ingest and becomes live only at
       [10.3.4](10c-export.md)'s dump, which is E4 and gated on a real legal read.
 - [x] 15.5 Decide separately at which stage the public API ([10.1](10a-public-api.md)), import ([10.2](10b-import.md)) and export ([10.3](10c-export.md)) appear, and which "hooks" for them already land in E0–E1 ([10.4](10d-model-requirements.md)).
-      **Decision: export in E1.5, import in E1.6, the API not scheduled at all — and the hook list is
-      shorter than [1.9](01-product.md) feared, because [section 10.4](10d-model-requirements.md)
-      turned most of it into things we were building anyway.**
+      **Decision: export in E1.5, the importer in E1.6, the Discogs converters in E1.7, the API not
+      scheduled at all — and the hook list is shorter than [1.9](01-product.md) feared, because
+      [section 10.4](10d-model-requirements.md) turned most of it into things we were building
+      anyway.**
       **Export — E1.5, before import**, per [1.9](01-product.md). It needs no external format
       knowledge, it is synchronous with no job ([10.3.3](10c-export.md)), and it delivers
-      [1.3](01-product.md)'s fourth value proposition on the day it ships.
+      [1.3](01-product.md)'s fourth value proposition on the day it ships. Since
+      [10.2.1](10b-import.md), it is also the importer's input format, so the dependency is
+      structural rather than merely preferred.
       **Import — E1.6**, immediately after, and it is the round trip's closing move:
       [11.10](11-stack.md)'s export → import → export property cannot run until it exists, and that
-      property is [1.10](01-product.md)'s first success criterion turned into a test.
+      property is [1.10](01-product.md)'s first success criterion turned into a test. **This slice
+      reads our own format only** and needs no third-party file to be finished or tested.
+      **Discogs converters — E1.7**, and they are **not optional despite being a separate slice**:
+      our own format exists only after someone has used the site, so until E1.7 ships there is no
+      way for a real collector to get in, and [1.10](01-product.md)'s criteria both stay unreachable.
+      The separation buys blast radius, not deferral — [10.2.2](10b-import.md)'s unverified columns
+      are confined to a pure module, and a second source later is another slice of the same shape.
       **The API — not scheduled** ([10.1.1](10a-public-api.md) found no audience). If the underlying
       need ever appears it is a **personal access token accepted on the export URL**, roughly a day's
       work, and that is the roadmap item to write rather than "build the API".
@@ -254,12 +276,13 @@ scheduled ([15.1](15-roadmap.md)).
 decision.** Five items decided. Four of them are compilations rather than new choices —
 [15.2](15-roadmap.md) gathers refusals already made, [15.5](15-roadmap.md) gathers hooks already
 required, and [15.1](15-roadmap.md)'s stage boundaries follow [1.9](01-product.md)'s scope line. The
-genuinely new material is **the order of E1's eight slices** and its argument,
+genuinely new material is **the order of E1's nine slices** and its argument,
 [15.3](15-roadmap.md)'s week-one slice, and [15.4](15-roadmap.md)'s ranking of the risks.
 
 **2026-08-15 — What [15.6](15-roadmap.md) is now waiting on: nothing but the writing.** Every P0
 section is closed and the only open items anywhere in `design/` are
-[10.2.2](10b-import.md) (`[~]`, needs a real collection export, blocks nothing) and
+[10.2.2](10b-import.md) (`[~]`, needs a real collection export, and after
+[10.2.1](10b-import.md)'s restructuring it blocks E1.7 alone) and
 [12.1](12-infrastructure.md)/[12.5](12-infrastructure.md) (`[~]`, hosting and mail vendors,
 deferred by choice — they block the first deploy, not the plan). `plan/E0-skeleton.md` can be
 written from [15.3](15-roadmap.md) and [12.x](12-infrastructure.md) today.

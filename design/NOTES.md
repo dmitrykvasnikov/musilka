@@ -176,10 +176,25 @@ Each one names the item it was decided in.
   would not be drained ([4.3](04-editing.md)) and every query would carry a clause about it forever.
   Corrections happen through merge ([4.4](04-editing.md)), which exists.
 - **2026-08-15 — Matching is exact or it does not happen.** An import links a row to an existing
-  release only on an exact external id ([10.4.1](10d-model-requirements.md)'s `external_ids`);
-  barcode, catno+label and fuzzy matching are all refused. Decided in [10.2.4](10b-import.md). The
-  reason generalises to any later matching question: **a duplicate is repairable by merge, a wrong
-  link is silent and looks correct** — so where the two are the alternatives, prefer the duplicate.
+  release only on an exact identifier — **our own `release_id` following `merged_into`, then
+  [10.4.1](10d-model-requirements.md)'s `external_ids`, then mint a stub**; barcode, catno+label and
+  fuzzy matching are all refused. Decided in [10.2.4](10b-import.md), with the first rung added when
+  [10.2.1](10b-import.md) made our own export the importer's input. The reason generalises to any
+  later matching question: **a duplicate is repairable by merge, a wrong link is silent and looks
+  correct** — so where the two are the alternatives, prefer the duplicate.
+- **2026-08-15 — One import format, and everything else is a converter in front of it.** The
+  importer reads only what [10.3](10c-export.md) writes; Discogs — and any later source — is a
+  **pure function in `musilka-domain`** producing those bytes, with no database access
+  ([10.2.1](10b-import.md)). It fits with nothing invented because
+  [10.3.5](10c-export.md) already denormalises the catalogue crumbs into every exported row and
+  [10.3.2](10c-export.md) already carries `discogs_release_id`. **Three things follow and should be
+  cited rather than re-argued:** every third-party quirk — comma-packed fields, Goldmine prose,
+  sentinel `none`, retailer format descriptors — is confined to one module and can never reach the
+  database; a new source is a new converter, never a schema, job or report change; and the
+  never-discard-silently rule crosses the seam, so a converter returns **rows *and* findings** that
+  land in [10.2.9](10b-import.md)'s single report. **The converter is not "later":** our own format
+  exists only after someone has used the site, so on day one it is the only way in
+  ([15.1](15-roadmap.md) gives it E1.7).
 - **2026-08-15 — Export is synchronous and owner-only; the job queue exists for import alone.**
   Every export streams from a single query in one request ([10.3.3](10c-export.md)), and only the
   owner may export anything at all ([10.3.1](10c-export.md)). [11.7](11-stack.md) expected export
@@ -587,6 +602,9 @@ Facts found while designing that constrain later choices (external ToS, format q
 - **2026-08-14 — Discogs packs multiple values into single CSV fields, comma-joined and
   positionally paired** (`label` against `catno`), while label names may themselves contain commas.
   Any CSV parsing design that splits on `,` is wrong. Details in [10.2 working notes](10b-import.md).
+  **Rescoped 2026-08-15:** this and the finding above are constraints on the **Discogs converter**,
+  not on the importer — [10.2.1](10b-import.md) put a format boundary between them, so a mistake
+  here breaks one pure module rather than the import path.
 - **2026-08-14 — EU database rights cover repeated extraction of insubstantial parts.** A single
   user's collection export is not a substantial part of anyone's database, so one upload is safe. But
   the Database Directive also bars *repeated and systematic* extraction of insubstantial parts, and

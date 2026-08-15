@@ -56,8 +56,10 @@ Bolting this onto a finished database is far more expensive than designing it in
       on the winner and an `external_id` row is not user content.
       **Who may write one:** any verified user editing the entity ([6.1](06-accounts.md)), under
       [14.5](14-security.md)'s catalogue-edit limit, and the importer acting as the uploading user.
-      **The MVP has exactly one source**, `discogs`, from the CSV's `release_id`
-      ([10.2.4](10b-import.md)); a second source is a seed row, not a migration.
+      **The MVP has exactly one source**, `discogs`, written by the converter
+      ([10.2.1](10b-import.md)) from the CSV's `release_id`; a second source is a seed row, not a
+      migration. **This table is the only place a third party's identifier lives**, which is what
+      lets the importer itself stay entirely format-agnostic.
 - [x] 10.4.2 Data provenance: do we mark where an entity/field came from (`user`, `import:discogs`, `import:musicbrainz`), and may that value be overwritten on a repeated sync?
       **Decision: no field-level provenance anywhere. Provenance is [4.2](04-editing.md)'s revision
       plus two columns on it, and the second half of the question is moot.**
@@ -191,9 +193,11 @@ Bolting this onto a finished database is far more expensive than designing it in
       **Old identifiers keep resolving, which is what makes an old file still work.** A merged entity
       keeps its id and follows `merged_into` ([4.4](04-editing.md), [7.8](07-search-ux.md)'s
       redirect); a deleted one resolves to its tombstone ([4.5](04-editing.md)). So a two-year-old
-      export still lands somewhere, and **JSON re-import resolves in this order**: our `release_id`
+      export still lands somewhere, and **re-import resolves in this order**: our `release_id`
       (following the merge pointer) → `external_id` ([10.4.1](10d-model-requirements.md)) → mint a
-      stub. Exact or nothing at every rung, per [10.2.4](10b-import.md).
+      stub. Exact or nothing at every rung. Since [10.2.1](10b-import.md) this is not a special case
+      for our own files but **the whole of [10.2.4](10b-import.md)'s ladder** — a converted file
+      simply arrives with the first rung empty.
       **Mechanics:** `bigint GENERATED ALWAYS AS IDENTITY` on every entity table, no `serial`, no
       shared sequence, `bigint` even where `int` would obviously do — the four bytes are cheaper than
       the migration.
