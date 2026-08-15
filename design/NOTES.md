@@ -82,6 +82,23 @@ Each one names the item it was decided in.
   `admin`), enforced in the service layer so [10.1](10a-public-api.md) obeys the same rules, and
   nothing anywhere is gated on a contribution count or a reputation score. Decided in
   [4.7](04-editing.md) and [4.8](04-editing.md).
+- **2026-08-15 — A collection item holds no copy of catalogue data.** No denormalised title, artist,
+  year or format on `collection_item` — it is a foreign key plus the facts about *this copy*.
+  Decided in [3.1](03-collection.md); it is what makes a catalogue edit a non-event for collections
+  ([3.11](03-collection.md)) and what lets statistics read through to the master
+  ([3.8](03-collection.md)). Any proposal to cache catalogue fields on the item is a proposal to
+  build a synchronisation problem.
+- **2026-08-15 — Nothing money-shaped anywhere, and the deferral is itemised.** [1.7](01-product.md)
+  already barred price from catalogue entities; [3.2](03-collection.md) now keeps it off the
+  collection item too — no purchase price, no currency, no valuation, no maximum price on a wantlist
+  item, no total-value statistic. **Deferred, not refused:** reopening is two nullable columns on
+  `collection_item` plus one on `wantlist_item`, listed in that section's working notes.
+- **2026-08-15 — An import never discards data silently.** Whatever a user's file carries that our
+  model has no home for — price columns ([3.2](03-collection.md)), custom fields
+  ([3.4](03-collection.md)) — is either folded into a free-text field with its source label or
+  dropped, and **either way the importer reports it**. Binds [10.2](10b-import.md). The reason is
+  that a silent drop is indistinguishable from a bug, and the user is the only person who still has
+  the original file.
 - **2026-08-15 — Curated set, with free text beside it rather than inside it.** Every field drawn
   from a vocabulary (genres and styles, format descriptors, identifier types, credit roles, company
   roles) is seeded and closed, with a free-text companion field for what the vocabulary cannot say.
@@ -90,6 +107,9 @@ Each one names the item it was decided in.
   set with no escape hatch makes users lie. Established across
   [2.3.2](02-catalogue-model.md), [2.4.2](02-catalogue-model.md), [2.4.3](02-catalogue-model.md),
   [2.4.5](02-catalogue-model.md), [2.4.6](02-catalogue-model.md).
+  **The scope is shared vocabularies.** A user's own collection tags ([3.3](03-collection.md)) are
+  private labels nobody else groups by, and are freely named — not an exception to the rule but a
+  case outside it.
 
 ## Rejected approaches
 
@@ -121,6 +141,19 @@ What we considered and turned down, and why — so we do not re-litigate it in t
   Turned down at [2.4.7](02-catalogue-model.md): a status column with no voting workflow behind it is
   decoration that goes stale. The quality signal is the edit history
   ([section 4](04-editing.md)), which is data rather than an assertion.
+- **2026-08-15 — Collection folders, and custom user-defined fields.** Turned down at
+  [3.3](03-collection.md) and [3.4](03-collection.md) in favour of user-owned tags plus a free-text
+  note. Folders impose single membership we cannot justify; custom fields are a per-user schema
+  (definitions, types, validation, rendering, export columns, API shape) bought for an undemonstrated
+  need. Both are what tags already do, and a Discogs folder imports as a tag losslessly.
+- **2026-08-15 — A current-valuation field and a total-collection-value statistic.** Turned down at
+  [3.2](03-collection.md) and [3.8](03-collection.md) on top of the money deferral: with
+  [1.5](01-product.md) forbidding market data, valuation could only be a number typed once and never
+  revisited, and a total computed from it is fiction wearing a statistic's clothes.
+- **2026-08-15 — Per-item collection privacy.** Turned down at [3.7](03-collection.md). Real for some
+  collectors, but it puts a clause in every listing query and a control on every row to hide what a
+  private collection already hides. Sensitive fields (note, purchase date and place) are owner-only
+  unconditionally instead, which covers the actual worry.
 - **2026-08-15 — Voting on edits, MusicBrainz style.** Turned down at [4.3](04-editing.md). Voting
   presumes an electorate; ours has one member ([1.4](01-product.md)), and a vote queue nobody drains
   is worse than no queue at all. Reopen only if there are ever enough simultaneous editors to
@@ -172,8 +205,8 @@ Questions that must be answered before some other item can be closed. Format: wh
   [2.2.1](02-catalogue-model.md): one artist, many name rows, one search index, no transliteration
   anywhere. Kept here only as a pointer, since [1.8](01-product.md) and several notes refer to it as
   an open question. It is now an invariant above.
-- [11.2](11-stack.md) final stack confirmation ← sections 3–5, per that file's own priority note.
-  Section 2 is no longer part of this. [1.12](01-product.md) records the preference (Haskell) and
+- [11.2](11-stack.md) final stack confirmation ← **section 5 only**, as of 2026-08-15; sections 3 and
+  4 are closed and section 2 was already out of it. [1.12](01-product.md) records the preference (Haskell) and
   the fallback (Elixir/Phoenix); the binding choice waits until the remaining model sections are
   known. Section 2's answer on size is in: four entities, no global track table, vocabularies as
   seeded lookups, and an ordered artist credit in three parallel tables.
