@@ -240,6 +240,33 @@ Each one names the item it was decided in.
   re-upload. The release itself is untouched — removing an image is not [4.5](04-editing.md)'s
   deletion.
 
+- **2026-08-15 — The catalogue is CC0; the images and the user's own data are not.** Masters,
+  releases, artists, labels, credits and vocabularies are dedicated to the public domain, and the
+  ToS makes each contribution a CC0 grant ([13.1](13-legal.md)). Uploaded artwork is excluded — we
+  never held rights in it, which is why [8.4](08-media.md) removes rather than argues — and
+  collections, wantlists, notes, tags, messages and profiles are excluded absolutely. Any future
+  dump ([10.3.4](10c-export.md)) carries catalogue rows and image *keys*, never image bytes and
+  never a user's rows.
+- **2026-08-15 — The browser talks to our origin and the image bucket, and to nothing else, ever.**
+  No analytics, no fonts, no CDN, no CAPTCHA, no error tracker, no third-party script of any kind
+  ([13.4](13-legal.md), and [9.5](09-nfr.md) declined Sentry on the same grounds). Three things
+  follow and should be cited rather than re-argued: there is exactly one cookie and therefore **no
+  cookie banner**, [13.3](13-legal.md)'s sub-processor list is three infrastructure providers, and
+  [14.3](14-security.md)'s CSP can forbid `unsafe-inline` — which in turn bans inline styles and
+  `hx-on:` attributes in templates.
+- **2026-08-15 — Authorisation is a clause in the query, never a check after the load.** Every
+  user-scoped read and write takes the acting user and constrains on it in SQL; there is no
+  `getById` followed by an `if` ([14.3](14-security.md)). This is what makes sequential integer ids
+  harmless — relevant to [10.4.6](10d-model-requirements.md), still open — and it is why
+  [3.7](03-collection.md)'s share token is a capability rather than an identifier. It lives in the
+  service layer, so [10.1](10a-public-api.md) inherits it like every other rule
+  ([11.5](11-stack.md)).
+- **2026-08-15 — EU/EEA, everything.** The privacy documents are written to the GDPR and 152-FZ is
+  not claimed ([13.3](13-legal.md)), so the VPS, the image bucket, [9.3](09-nfr.md)'s backup bucket
+  and the mail sender all sit in the EU/EEA. This is a constraint on
+  [12.1](12-infrastructure.md), not a preference, and it is also what removes the international
+  transfer question from the policy entirely.
+
 ## Rejected approaches
 
 What we considered and turned down, and why — so we do not re-litigate it in three months.
@@ -438,6 +465,41 @@ What we considered and turned down, and why — so we do not re-litigate it in t
   external call ([2.5.6](02-catalogue-model.md) refused it by name) or hand entry, which means a
   field empty on every row that asks our editors to do a third party's data entry.
 
+- **2026-08-15 — Russian hosting and 152-FZ compliance.** Turned down at [13.3](13-legal.md). It is
+  not a legal preference but an architectural one: Art. 18.5's localisation requirement would decide
+  [12.1](12-infrastructure.md)'s provider for us and add Roskomnadzor notification, where writing
+  one GDPR-shaped policy costs a page and puts the database, both buckets and the mail sender in one
+  jurisdiction with no transfer question.
+- **2026-08-15 — CC BY-SA for the data, AGPL and a private repository for the code, and a CLA.**
+  Turned down at [13.1](13-legal.md) and [13.2](13-legal.md). Share-alike would enclose material
+  that reached us as CC0 and buy a compliance burden for reusers of largely uncopyrightable facts;
+  AGPL defends against a commercial fork [1.1](01-product.md) says we do not expect; a private
+  repository deletes half of what a portfolio project is for. A CLA manages a contributor population
+  of one.
+- **2026-08-15 — Analytics of every kind, and the cookie banner with them.** Turned down at
+  [13.4](13-legal.md). Hosted analytics brings a banner, a transfer question and a script tag to a
+  product with none; self-hosted analytics is a second daemon and usually a second database on
+  [1.4](01-product.md)'s box. [9.5](09-nfr.md)'s request log answers the same questions offline over
+  data we already keep. The banner then has nothing to consent to, and showing one anyway would be a
+  lie.
+- **2026-08-15 — Age verification, a registered DMCA agent, and DSA compliance machinery.** Turned
+  down at [13.5](13-legal.md). Verifying age would collect more personal data than the whole rest of
+  the service holds; the DMCA agent is a US safe-harbour formality and [13.3](13-legal.md) put us in
+  the EU; statements of reasons, transparency reports and appeals are scoped to services far larger
+  than this. A published abuse address and a takedown that actually happens is the substance.
+- **2026-08-15 — CAPTCHA, confirmed closed rather than re-decided.** [4.9](04-editing.md) and
+  [5.7](05-messaging.md) had already declined it; [14.5](14-security.md) closes it permanently on a
+  new ground — every CAPTCHA is a third-party script, which [13.4](13-legal.md)'s invariant now
+  forbids outright and [11.3](11-stack.md)'s no-JS rule would break anyway.
+- **2026-08-15 — Password composition rules, rotation, a pepper, and hard account lockout.** Turned
+  down at [14.2](14-security.md) in favour of a 10-character minimum, a vendored common-password
+  list, and exponential backoff. Lockout is the decisive one: it hands an attacker a tool for
+  denying a victim their own account, and we have no support channel to undo it.
+- **2026-08-15 — SVG uploads and link previews.** Turned down at [14.4](14-security.md) and
+  [14.3](14-security.md). An SVG is a script container, and a link preview would be the only code
+  path in the system that fetches a URL a user supplied — inventing an SSRF surface
+  [1.5](01-product.md) had already deleted.
+
 ## Constraints discovered
 
 Facts found while designing that constrain later choices (external ToS, format quirks, volumes).
@@ -505,13 +567,21 @@ Questions that must be answered before some other item can be closed. Format: wh
   above. **What it hands on:** [3.11](03-collection.md) inherits three cases to answer — edited
   (nothing happens), merged (the item follows the pointer), deleted (the item survives and is shown
   as deleted).
-- [10.3.4](10c-export.md) a public dump of the whole catalogue ← [13.1](13-legal.md) the data
-  licence. Deferred rather than refused, and blocked in one direction only: publishing a dump *is*
-  the licensing act, so it cannot precede the licence. It is also the point where the EU
-  database-rights constraint below stops being theoretical — that risk was accepted for ingesting
-  one user's export, never for redistributing the accretion. Nothing needs building now to keep it
-  possible; when it comes it is JSON Lines from [10.3](10c-export.md)'s serialisers plus a cron
-  entry.
+- ~~[10.3.4](10c-export.md) a public dump of the whole catalogue ← [13.1](13-legal.md) the data
+  licence~~ — **unblocked 2026-08-15.** The licence is CC0 and the ToS grant makes contributions
+  match it, so publishing a dump is now a scheduling decision: JSON Lines from
+  [10.3](10c-export.md)'s serialisers, plus a `LICENSE` file in the archive and a cron entry.
+  **What survives the unblocking is the risk, not the blocker:** the EU database-rights constraint
+  below was accepted for *ingesting* one user's export and never for redistributing the accretion,
+  and [13.1](13-legal.md) can only dedicate what we hold. A dump at any real volume wants an actual
+  lawyer first.
+- **The domain is unregistered, and two things wait on it** ← [13.6](13-legal.md) deferred it to
+  [12.1](12-infrastructure.md) deliberately. The TLS certificate is trivial; the one that bites is
+  transactional mail — [section 6](06-accounts.md)'s four templates from a fresh domain with no
+  SPF, DKIM or DMARC land in spam, and that breaks [6.1](06-accounts.md)'s verified-email barrier,
+  which every anti-abuse decision in the design leans on. Register and publish the records in the
+  same sitting as the first deploy setup, and give reputation time before [1.10](01-product.md)'s
+  stranger is invited.
 - [10.4.6](10d-model-requirements.md) public entity identifiers ← nothing, and that is the problem.
   It is unblocked, and [10.3.2](10c-export.md) has just made it irreversible: the first exported
   file puts whatever we chose into someone's hands permanently. It should be settled before the
@@ -520,11 +590,11 @@ Questions that must be answered before some other item can be closed. Format: wh
   `/<entity>/<id>/<slug>` and left `<id>` as the one hole in it. The slug is cosmetic and may change
   freely; the identifier is in links, redirects after merge ([7.8](07-search-ux.md)) and the export
   file at once. It is now the oldest unblocked P0 item in the design.
-- [8.3](08-media.md) serving WebP with no fallback ← [9.6](09-nfr.md) browser support. Not really in
-  doubt — every current browser has supported WebP for years — but [8.3](08-media.md) made the bet
-  explicitly rather than assuming it, and [9.6](09-nfr.md) is where it is confirmed or paid for. If
-  it ever has to be paid for, the price is a second derivative per image and roughly a doubled
-  bucket, which is the number [1.4](01-product.md) was watching.
+- ~~[8.3](08-media.md) serving WebP with no fallback ← [9.6](09-nfr.md) browser support~~ —
+  **closed 2026-08-15.** The baseline is current evergreen browsers and WebP has been safe in all of
+  them for years: no JPEG fallback, no second derivative, and [8.2](08-media.md)'s bucket estimate
+  stands. Had it gone the other way the price was roughly a doubled bucket, which is the number
+  [1.4](01-product.md) was watching.
 - Seeding the vocabularies ← [section 15](15-roadmap.md). Genres, styles, credit roles, format
   descriptors and country codes (ISO plus historical `SU`, `YU`, `DD`, `CS`) all need initial
   contents, and [1.5](01-product.md) forbids fetching them, so they are hand-written seed data — our
@@ -551,3 +621,10 @@ Claims in the agenda that are assumptions until checked against a real file, API
 - [10.5.1](10e-legal-sources.md) — narrowed by [1.5](01-product.md): we never call the Discogs API,
   so its rate limits are moot. What remains to check is whether Discogs' ToS says anything about
   what a user may do with their **own** export.
+- [13.5](13-legal.md) — the claim that a single-operator service of this size owes no DSA
+  compliance machinery (statements of reasons, transparency reports, appeals) and needs no
+  registered DMCA agent. Believed right and decided on that basis; not checked against current law,
+  and worth ten minutes before the ToS is published.
+- [13.1](13-legal.md) — that a ToS clause is an effective waiver of the EU sui generis database
+  right in a contribution. Standard practice (Wikidata and MusicBrainz both do it), never
+  lawyer-reviewed by us. The exposure is small while [10.3.4](10c-export.md) stays unpublished.
