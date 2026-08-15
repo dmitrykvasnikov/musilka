@@ -200,6 +200,45 @@ Each one names the item it was decided in.
   ([10.2.3](10b-import.md)) or hand edits ([section 4](04-editing.md)). Decided in
   [10.2.10](10b-import.md). Vocabulary seed data loaded by a migration ([11.8](11-stack.md)) is not
   an exception — it is a list we wrote ourselves.
+- **2026-08-15 — One cache is permitted, and the test that admits it.** `master.search_tsv` is
+  denormalised on purpose ([7.2](07-search-ux.md)) while [3.1](03-collection.md) forbids exactly that
+  on a collection item. The rule that reconciles them, and which any later caching proposal must
+  pass: **a cache is allowed when one statement rebuilds it from the truth, so a stale value is
+  detectable.** A search vector passes; a title copied onto a collection item fails, because a copy
+  that differs from its source is indistinguishable from a deliberate edit. Everything else stays
+  computed live — [3.8](03-collection.md)'s statistics, [7.3](07-search-ux.md)'s facet counts,
+  [6.3](06-accounts.md)'s edit count.
+- **2026-08-15 — Search is three indexed columns, and nothing is searchable that we cannot fill.**
+  Full text covers artists, masters and labels only; releases are found by exact identifier,
+  tracks and users are not searchable at all ([7.1](07-search-ux.md)). Postgres FTS in the `simple`
+  configuration plus `unaccent` and `pg_trgm`, with trigram used only as a no-results fallback
+  ([7.2](07-search-ux.md)). The recurring reason: a result group over a table the import channel
+  cannot fill ([1.5](01-product.md)) is an empty heading on every page.
+  **The known gap, recorded so it is not rediscovered as a bug:** artists are findable in any script
+  ([2.2.1](02-catalogue-model.md)) but titles have no variant rows, so a Latin-typed query for a
+  Cyrillic title fails. The fix is an additive `master_title` table; the workaround is the artist
+  page.
+- **2026-08-15 — Every view is a URL, and the enhancement is never the mechanism.** Filters, sorting
+  and pagination are `GET` parameters ([7.3](07-search-ux.md)) and autocomplete degrades to a text
+  field and a button ([7.4](07-search-ux.md)). This is [11.3](11-stack.md)'s no-JS rule made
+  concrete, and it is also what makes [7.8](07-search-ux.md)'s indexability free — but note the
+  inverse obligation it creates: because filtered URLs exist, they must be `Disallow`ed, or the
+  facet combinatorics become a crawl trap pointed at one small box.
+- **2026-08-15 — Images: uploads only, object storage only, and no original is kept.** The bucket is
+  the sole non-Postgres datastore ([8.2](08-media.md), granted in advance by [1.4](01-product.md)),
+  keys are content-addressed by `sha256` so deduplication and immutable caching come for free, and
+  every upload becomes exactly two WebP derivatives — 1600 px and 300 px — after which the original
+  is discarded ([8.1](08-media.md), [8.3](08-media.md)). This is the one **irreversible** decision in
+  the section: nothing uploaded before a change of mind can be re-derived at higher resolution.
+  Processing is a `vips` subprocess in the request, not a queue job ([8.3](08-media.md)), which
+  leaves the importer and outbound email as the queue's complete set of users.
+- **2026-08-15 — Image takedown is the only hard delete of something others reference, and it is
+  bounded.** Everything else anyone points at soft-deletes or anonymises (a user's own collection
+  rows always were an ordinary delete, [3.10](03-collection.md)); a rights-holder complaint cannot be
+  answered by a tombstone that still serves the file, so the blob really goes ([8.4](08-media.md)). What survives
+  is the `sha256` plus a `blocked_at`, which content-addressed storage turns into free refusal of a
+  re-upload. The release itself is untouched — removing an image is not [4.5](04-editing.md)'s
+  deletion.
 
 ## Rejected approaches
 
@@ -366,6 +405,38 @@ What we considered and turned down, and why — so we do not re-litigate it in t
   notes: no monthly emailed export, no per-list format preference, no export of a filtered subset.
   Each is a setting or a job for a page that is one click and under a second, and
   [6.6](06-accounts.md) closed the settings question against exactly this kind of addition.
+- **2026-08-15 — Track search, user search, and "similar releases".** Turned down at
+  [7.1](07-search-ux.md) and [7.4](07-search-ux.md). The first two are result groups over tables that
+  are empty or trivial at our scale — a tracklist nothing fills ([2.1.4](02-catalogue-model.md)) and
+  a directory of tens of nicknames whose only consumer would be a deferred feature. Similarity would
+  be a recommendation engine computed from genre overlap at ~12,000 releases; the honest version
+  already exists as links (other pressings, other releases by this artist, this label).
+- **2026-08-15 — Transliteration in the search layer, and title variant rows.** Turned down at
+  [7.4](07-search-ux.md). The first is barred outright by [2.2.1](02-catalogue-model.md)'s invariant
+  and needed no re-deciding; the second is the additive fix for the gap that leaves, declined for now
+  because nothing would fill it — no import channel carries a second title.
+- **2026-08-15 — A PWA, a native app, camera barcode scanning, and a dark-theme toggle.** Turned down
+  at [7.6](07-search-ux.md) and [7.7](07-search-ux.md). A service worker exists for offline and push,
+  and [5.9](05-messaging.md) already refused push; a native app is a second codebase against
+  [1.11](01-product.md)'s pace; a scanner is a vendored JS decoder against [11.3](11-stack.md)'s
+  no-build-step line, when typing a barcode into the existing field is the whole feature. The theme
+  toggle needs somewhere to persist a preference, and [6.6](06-accounts.md) closed that list at three
+  columns — `prefers-color-scheme` is what the user already chose.
+- **2026-08-15 — Keeping the uploaded original, AVIF, and a third image size.** Turned down at
+  [8.1](08-media.md) and [8.3](08-media.md). Each multiplies the one number [1.4](01-product.md)
+  predicted would break first, and each buys a re-encode or a breakpoint nobody has asked for. Note
+  this is the section's irreversible call: originals already discarded cannot be recovered, so
+  reopening means "keep them from this date onward".
+- **2026-08-15 — Automated NSFW or copyright screening of uploads.** Turned down at
+  [8.4](08-media.md). Every option is an external API ([1.5](01-product.md)) or a model hosted on a
+  2 GB box ([1.4](01-product.md)) — and sleeve art is routinely nude, so our content is precisely
+  where a classifier's false-positive rate is worst. Moderation is reactive through
+  [4.6](04-editing.md)'s existing report row.
+- **2026-08-15 — Audio previews, and links to streaming services.** Turned down permanently at
+  [8.5](08-media.md). Hosting audio is a licence we cannot get for a catalogue of physical objects
+  ([1.2](01-product.md)); the "safer" link alternative needs an identifier that comes from either an
+  external call ([2.5.6](02-catalogue-model.md) refused it by name) or hand entry, which means a
+  field empty on every row that asks our editors to do a third party's data entry.
 
 ## Constraints discovered
 
@@ -445,6 +516,15 @@ Questions that must be answered before some other item can be closed. Format: wh
   It is unblocked, and [10.3.2](10c-export.md) has just made it irreversible: the first exported
   file puts whatever we chose into someone's hands permanently. It should be settled before the
   first export ships, not before the API does.
+  **A second caller as of 2026-08-15:** [7.5](07-search-ux.md) fixed every URL in the product as
+  `/<entity>/<id>/<slug>` and left `<id>` as the one hole in it. The slug is cosmetic and may change
+  freely; the identifier is in links, redirects after merge ([7.8](07-search-ux.md)) and the export
+  file at once. It is now the oldest unblocked P0 item in the design.
+- [8.3](08-media.md) serving WebP with no fallback ← [9.6](09-nfr.md) browser support. Not really in
+  doubt — every current browser has supported WebP for years — but [8.3](08-media.md) made the bet
+  explicitly rather than assuming it, and [9.6](09-nfr.md) is where it is confirmed or paid for. If
+  it ever has to be paid for, the price is a second derivative per image and roughly a doubled
+  bucket, which is the number [1.4](01-product.md) was watching.
 - Seeding the vocabularies ← [section 15](15-roadmap.md). Genres, styles, credit roles, format
   descriptors and country codes (ISO plus historical `SU`, `YU`, `DD`, `CS`) all need initial
   contents, and [1.5](01-product.md) forbids fetching them, so they are hand-written seed data — our
